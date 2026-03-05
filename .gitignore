@@ -1,0 +1,44 @@
+
+.DS_Store
+.env
+.env.local
+.global.json
+.idea/
+.pnpm-debug.log*
+.vscode/
+*.db
+*.db-shm
+*.db-wal
+*.exe
+*.pem
+*.prof
+*.swo
+*.swp
+*.test
+/scripts/garble-build.sh
+# Binaries
+# Env
+# Go
+# GoReleaser
+# IDEs
+# Node
+# OS
+# Runtime & Data
+# Sub-projects (Managed separately)
+#go.sum
+abyss
+abyss-pro
+build/
+core/
+data
+dist/
+go.sum
+go.work
+go.work.sum
+logs/
+node_modules/
+npm-debug.log*
+plugins/
+pnpm-debug.log*
+Thumbs.db
+vendor/

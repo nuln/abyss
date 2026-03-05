@@ -1,0 +1,116 @@
+# .goreleaser.yaml
+version: 2
+
+project_name: abyss
+
+before:
+  hooks:
+    - sh -c 'printf "#!/bin/bash\ngarble -literals \"\$@\"\n" > /tmp/garble-build.sh && chmod +x /tmp/garble-build.sh'
+
+builds:
+  - id: abyss
+    main: .
+    binary: "abyss_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}"
+    no_unique_dist_dir: true
+    tool: /tmp/garble-build.sh
+    env:
+      - CGO_ENABLED=0
+      - GONOSUMCHECK=github.com/nuln/*
+      - GOGARBLE=github.com/nuln/*
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - mips
+      - mipsle
+    goarm:
+      - 6
+      - 7
+    ignore:
+      - goos: windows
+        goarch: arm
+
+  - id: abyss-pro
+    main: .
+    binary: "abyss-pro_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}"
+    no_unique_dist_dir: true
+    tool: /tmp/garble-build.sh
+    tags:
+      - pro
+    env:
+      - CGO_ENABLED=0
+      - GONOSUMCHECK=github.com/nuln/*
+      - GOGARBLE=github.com/nuln/*
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - mips
+      - mipsle
+    goarm:
+      - 6
+      - 7
+    ignore:
+      - goos: windows
+        goarch: arm
+
+upx:
+  - enabled: true
+    goos:
+      - linux
+    compress: "best"
+    lzma: true
+
+archives:
+  - id: abyss
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    wrap_in_directory: "{{ .Binary }}"
+    name_template: "{{ .Binary }}"
+    ids:
+      - abyss
+    files:
+      - README.md
+      - README_zh.md
+  - id: abyss-pro
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    wrap_in_directory: "{{ .Binary }}"
+    name_template: "{{ .Binary }}"
+    ids:
+      - abyss-pro
+    files:
+      - README.md
+      - README_zh.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+release:
+  draft: true
