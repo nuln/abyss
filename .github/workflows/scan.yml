@@ -1,0 +1,39 @@
+name: Dependency Scan
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'go.mod'
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '0 2 * * 1' # Monday 10:00 AM (UTC+8)
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate token
+        id: generate-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.ABYSS_ACCESS_APP_ID }}
+          private-key: ${{ secrets.ABYSS_ACCESS_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.3'
+
+      - name: Run Vulnerability Check
+        env:
+          GOPRIVATE: github.com/nuln/*
+          GONOSUMDB: github.com/nuln/*
+        run: make vulnerability-check

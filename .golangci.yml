@@ -1,0 +1,70 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters-settings:
+  govet:
+    enable:
+      - shadow
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+  gocyclo:
+    min-complexity: 20
+  staticcheck:
+    checks: ["all"]
+  revive:
+    rules:
+      - name: exported
+        disabled: true
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/nuln)
+    custom-order: true
+  goimports:
+    local-prefixes: github.com/nuln
+  nakedret:
+    max-func-lines: 30
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - ineffassign
+    - gocyclo
+    - unused
+    - gocritic
+    - misspell
+    - unconvert
+    - revive
+    - gosec
+    - bodyclose
+    - noctx
+    - prealloc
+    - unparam
+    - nakedret
+    - asciicheck
+    - whitespace
+    - nilnil
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+    - path: doc\.go
+      linters:
+        - unused

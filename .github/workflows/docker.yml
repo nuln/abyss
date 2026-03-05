@@ -1,0 +1,71 @@
+name: Docker
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate token
+        id: generate-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.ABYSS_ACCESS_APP_ID }}
+          private-key: ${{ secrets.ABYSS_ACCESS_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - name: Set version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker (Standard)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/abyss:latest
+            ghcr.io/${{ github.repository_owner }}/abyss:${{ steps.version.outputs.VERSION }}
+          build-args: |
+            TAGS=
+          secrets: |
+            "GITHUB_TOKEN=${{ steps.generate-token.outputs.token }}"
+
+      - name: Build and Push Docker (Pro)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/abyss:${{ steps.version.outputs.VERSION }}-pro
+          build-args: |
+            TAGS=pro
+          secrets: |
+            "GITHUB_TOKEN=${{ steps.generate-token.outputs.token }}"
