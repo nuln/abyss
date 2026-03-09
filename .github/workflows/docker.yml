@@ -44,7 +44,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Docker (Standard)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
@@ -58,7 +58,7 @@ jobs:
             "GITHUB_TOKEN=${{ steps.generate-token.outputs.token }}"
 
       - name: Build and Push Docker (Pro)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
