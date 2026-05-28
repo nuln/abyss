@@ -1,0 +1,52 @@
+# --- Binaries & Build Artifacts ---
+abyss
+abyss.exe
+coverage.out
+coverage.html
+coverage.txt
+
+# --- Frontend Build (Submodule artifacts) ---
+# Note: Source is in 'www' submodule, we only ignore build results here.
+www/dist/*
+!www/dist/.gitkeep
+www/node_modules/
+
+# --- Nested Frontend Artifacts (plugins/pro) ---
+**/www/dist/*
+!**/www/dist/.gitkeep
+**/www/node_modules/
+
+# --- Local Configuration & Data ---
+config.toml
+data/
+abyss.db*
+
+# --- IDE & System ---
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# --- Go Workspace ---
+go.work
+go.work.sum
+
+# --- Plugin/Pro Build Artifacts ---
+plugins/**/coverage.out
+plugins/**/coverage.html
+plugins/**/coverage.txt
+plugins/**/bin/
+pro/**/coverage.out
+pro/**/coverage.html
+pro/**/coverage.txt
+pro/**/bin/
+
+# --- Temporary & Env ---
+*.tmp
+*.temp
+.env
+.env.*
+
+# --- Split repositories downloaded on demand ---
+plugins/
+pro/

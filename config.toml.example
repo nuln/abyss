@@ -1,0 +1,26 @@
+# Abyss Configuration
+
+[server]
+addr = ":8080"
+baseURL = ""
+
+[data]
+# Root directory for all application data
+dir = "data"
+
+[auth]
+# Random 32-byte hex string. Auto-generated if empty.
+jwtSecret = ""
+accessTokenTTL = "24h"
+refreshTokenTTL = "720h"
+allowQueryToken = true
+
+[database]
+# Optional explicit path. Defaults to {data.dir}/abyss.db
+path = ""
+timeout = "3s"
+
+# Demo Mode
+demo = false
+demoEmail = "demo@abyss.local"
+demoPassword = "demo123456"
