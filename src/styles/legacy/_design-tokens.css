@@ -1,0 +1,178 @@
+/**
+ * Design Tokens - Minimalist White Theme
+ * 
+ * A clean, modern design system with soft shadows,
+ * generous whitespace, and subtle depth.
+ */
+
+:root {
+  /* ═══════════════════════════════════════════════════
+     COLOR PALETTE - Minimalist White
+     ═══════════════════════════════════════════════════ */
+  
+  /* Primary Colors */
+  --color-primary: hsl(220, 13%, 18%);          /* Deep charcoal for text/buttons */
+  --color-primary-light: hsl(220, 13%, 28%);
+  --color-primary-lighter: hsl(220, 10%, 40%);
+  
+  /* Accent */
+  --color-accent: hsl(220, 85%, 55%);           /* Refined blue for links/highlights */
+  --color-accent-light: hsl(220, 85%, 65%);
+  --color-accent-soft: hsl(220, 85%, 95%);
+  
+  /* Semantic Colors */
+  --color-success: hsl(152, 55%, 45%);
+  --color-success-soft: hsl(152, 55%, 94%);
+  --color-warning: hsl(38, 92%, 55%);
+  --color-warning-soft: hsl(38, 92%, 94%);
+  --color-error: hsl(0, 72%, 55%);
+  --color-error-soft: hsl(0, 72%, 95%);
+  
+  /* Neutrals - Light Theme */
+  --color-white: hsl(0, 0%, 100%);
+  --color-gray-50: hsl(220, 20%, 98%);          /* Page background */
+  --color-gray-100: hsl(220, 14%, 96%);
+  --color-gray-200: hsl(220, 13%, 91%);
+  --color-gray-300: hsl(220, 11%, 82%);
+  --color-gray-400: hsl(220, 9%, 64%);
+  --color-gray-500: hsl(220, 8%, 46%);
+  --color-gray-600: hsl(220, 10%, 34%);
+  --color-gray-700: hsl(220, 12%, 24%);
+  --color-gray-800: hsl(220, 14%, 16%);
+  --color-gray-900: hsl(220, 16%, 10%);
+  
+  /* ═══════════════════════════════════════════════════
+     SURFACES & BACKGROUNDS
+     ═══════════════════════════════════════════════════ */
+  
+  --surface-page: var(--color-gray-50);
+  --surface-card: var(--color-white);
+  --surface-elevated: var(--color-white);
+  --surface-overlay: rgba(0, 0, 0, 0.4);
+  
+  /* ═══════════════════════════════════════════════════
+     TEXT COLORS
+     ═══════════════════════════════════════════════════ */
+  
+  --text-primary: var(--color-gray-800);
+  --text-secondary: var(--color-gray-500);
+  --text-tertiary: var(--color-gray-400);
+  --text-inverse: var(--color-white);
+  --text-link: var(--color-accent);
+  
+  /* ═══════════════════════════════════════════════════
+     BORDERS
+     ═══════════════════════════════════════════════════ */
+  
+  --border-default: var(--color-gray-200);
+  --border-subtle: var(--color-gray-100);
+  --border-strong: var(--color-gray-300);
+  --border-focus: var(--color-accent);
+  
+  /* ═══════════════════════════════════════════════════
+     SHADOWS - Soft & Subtle
+     ═══════════════════════════════════════════════════ */
+  
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.06), 0 8px 16px rgba(0, 0, 0, 0.03);
+  
+  /* ═══════════════════════════════════════════════════
+     SPACING SCALE
+     ═══════════════════════════════════════════════════ */
+  
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  
+  /* ═══════════════════════════════════════════════════
+     BORDER RADIUS
+     ═══════════════════════════════════════════════════ */
+  
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  
+  /* ═══════════════════════════════════════════════════
+     TYPOGRAPHY
+     ═══════════════════════════════════════════════════ */
+  
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+  
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+  
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+  
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  
+  /* ═══════════════════════════════════════════════════
+     TRANSITIONS
+     ═══════════════════════════════════════════════════ */
+  
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+  
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  
+  /* ═══════════════════════════════════════════════════
+     Z-INDEX SCALE
+     ═══════════════════════════════════════════════════ */
+  
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+}
+
+/* ═══════════════════════════════════════════════════
+   DARK THEME OVERRIDES
+   ═══════════════════════════════════════════════════ */
+
+:root.dark {
+  --surface-page: hsl(220, 16%, 8%);
+  --surface-card: hsl(220, 14%, 12%);
+  --surface-elevated: hsl(220, 13%, 16%);
+  --surface-overlay: rgba(0, 0, 0, 0.6);
+  
+  --text-primary: hsl(220, 10%, 92%);
+  --text-secondary: hsl(220, 8%, 60%);
+  --text-tertiary: hsl(220, 6%, 45%);
+  
+  --border-default: hsl(220, 10%, 20%);
+  --border-subtle: hsl(220, 10%, 14%);
+  --border-strong: hsl(220, 10%, 28%);
+  
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.3);
+}

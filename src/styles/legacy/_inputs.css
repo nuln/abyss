@@ -1,0 +1,71 @@
+/**
+ * Input Styles - Minimalist White Theme
+ */
+
+.input,
+input.input {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-base);
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.input:hover,
+input.input:hover {
+  border-color: var(--border-strong);
+}
+
+.input:focus,
+input.input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.input::placeholder,
+input.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.input:disabled,
+input.input:disabled {
+  background: var(--color-gray-100);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+/* Block variant */
+.input--block {
+  margin-bottom: var(--space-3);
+}
+
+/* Select styling */
+select.input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  padding-right: var(--space-8);
+}
+
+/* Checkbox and radio styling */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.125em;
+  height: 1.125em;
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+/* Textarea styling */
+textarea.input {
+  min-height: 6em;
+  resize: vertical;
+}
