@@ -200,7 +200,7 @@ func registerAllRoutes(r *mux.Router, app *App) {
 	mountPluginHTTP(r, authMW)
 
 	// Plugin protocol routes
-	mountPluginProtocols(r, app.Config.Server.BaseURL, authMW)
+	mountPluginProtocols(r, authMW)
 }
 
 // ── Identity handlers ─────────────────────────────────────────────────────────
@@ -576,6 +576,7 @@ func (a *App) handleGetUser(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, u.ToFrontend())
 }
 
+//nolint:gocyclo // This handler intentionally applies role-aware patch logic in one place.
 func (a *App) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDVar(r, "id")
 	if err != nil {

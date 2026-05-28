@@ -106,7 +106,7 @@ func (s *settingsService) Get(ctx context.Context) (*Settings, error) {
 					Theme: "auto",
 					Files: "",
 				},
-				Rules:                 []any{},
+				Rules: []any{},
 			}
 		} else {
 			return nil, err

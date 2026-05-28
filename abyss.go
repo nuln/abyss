@@ -193,9 +193,9 @@ func Bootstrap(args []string) (*App, error) {
 	// Initialize all registered plugins with per-plugin stores.
 	pluginMgr := NewManager()
 	startupCtx := &StartupContext{
-		Files:  pluginFiles{storage: deps.storageSvc},
-		Users:  pluginUsers{userSvc: deps.userSvc, authSvc: deps.authSvc},
-		Logger: slog.Default(),
+		Files:   pluginFiles{storage: deps.storageSvc},
+		Users:   pluginUsers{userSvc: deps.userSvc, authSvc: deps.authSvc},
+		Logger:  slog.Default(),
 		BaseURL: cfg.Server.BaseURL,
 		Handler: func(fn HandleFunc) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -267,7 +267,7 @@ func Bootstrap(args []string) (*App, error) {
 		root.PathPrefix("/assets/").Handler(assetsHandler)
 		root.PathPrefix("/img/").Handler(imgHandler)
 
-		// Also register on the main router 'r' as fallback for absolute paths 
+		// Also register on the main router 'r' as fallback for absolute paths
 		// often found in compiled CSS files (e.g. url(/assets/font.woff)).
 		if cfg.Server.BaseURL != "" {
 			r.PathPrefix("/assets/").Handler(http.FileServer(http.FS(dist)))

@@ -122,16 +122,17 @@ func TestAesDecrypt_BackwardCompatWithRawKey(t *testing.T) {
 }
 
 // aesEncryptRaw encrypts with a raw key (simulating pre-HKDF behavior).
-func aesEncryptRaw(data, key []byte) ([]byte, []byte, error) {
+func aesEncryptRaw(data, key []byte) (ciphertext, nonce []byte, err error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, nil, err
 	}
-	gcm, err := cipher.NewGCM(block)
+	var gcm cipher.AEAD
+	gcm, err = cipher.NewGCM(block)
 	if err != nil {
 		return nil, nil, err
 	}
-	nonce := make([]byte, gcm.NonceSize())
+	nonce = make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, nil, err
 	}

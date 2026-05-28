@@ -1500,7 +1500,7 @@ func mountPluginHTTP(r *mux.Router, authMW func(http.Handler) http.Handler) {
 }
 
 // mountPluginProtocols wires all Protocol plugins into the router.
-func mountPluginProtocols(r *mux.Router, baseURL string, authMW func(http.Handler) http.Handler) {
+func mountPluginProtocols(r *mux.Router, authMW func(http.Handler) http.Handler) {
 	_ = CallProtocolAll(func(p Protocol) error {
 		prefix := p.ProtocolPrefix()
 		handler := p.Handler()

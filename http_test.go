@@ -745,7 +745,7 @@ func TestHandleUpdateUser_AdminCanUpdateRoleAndPermissions(t *testing.T) {
 		"data": map[string]any{
 			"role": "admin",
 			"permissions": map[string]any{
-				"admin": true,
+				"admin":  true,
 				"create": true,
 				"rename": true,
 			},

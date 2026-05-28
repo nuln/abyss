@@ -106,6 +106,10 @@ func boltEnsureSchema(db *boltDB, buckets ...[]byte) error {
 	})
 }
 
+type boltSessionStore struct {
+	db *boltDB
+}
+
 func (r *boltSessionStore) GetByID(ctx context.Context, id string) (*RefreshToken, error) {
 	_ = ctx
 	var out *RefreshToken
@@ -127,6 +131,7 @@ func (r *boltSessionStore) GetByID(ctx context.Context, id string) (*RefreshToke
 	})
 	return out, err
 }
+
 // ── boltUserStore ─────────────────────────────────────────────────────────────
 
 var (
@@ -368,10 +373,6 @@ var (
 	sessionsHashIdx = []byte("identity_sessions_by_hash")
 	sessionsUserIdx = []byte("identity_sessions_by_user")
 )
-
-type boltSessionStore struct {
-	db *boltDB
-}
 
 func (r *boltSessionStore) Save(ctx context.Context, token *RefreshToken) error {
 	_ = ctx
