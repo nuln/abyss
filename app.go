@@ -21,6 +21,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"html/template"
 	"io"
 	"log/slog"
 	"net/http"
@@ -46,6 +47,8 @@ type App struct {
 	DB     *boltDB
 	Router *mux.Router
 	Server *http.Server
+
+	indexTmpl *template.Template
 
 	userSvc      *userService
 	authSvc      *authService

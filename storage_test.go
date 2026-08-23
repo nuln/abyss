@@ -1158,3 +1158,82 @@ func TestDecodeImage_InvalidData(t *testing.T) {
 	_, err := decodeImage(bytes.NewReader([]byte("garbage")))
 	assert.Error(t, err)
 }
+
+// ── regression: overwrite-in-place (H-3) ──────────────────────────────────────
+
+func TestStorageService_WriteFile_OverwriteReusesRecord(t *testing.T) {
+	svc := makeStorageSvc(t)
+
+	first, err := svc.WriteFile(context.Background(), 1, "/docs/a.txt", strings.NewReader("v1"))
+	require.NoError(t, err)
+	require.Equal(t, int64(2), first.Size)
+
+	second, err := svc.WriteFile(context.Background(), 1, "/docs/a.txt", strings.NewReader("version-2"))
+	require.NoError(t, err, "overwriting an existing path must not conflict")
+	assert.Equal(t, first.ID, second.ID, "overwrite should update the existing record in place")
+	assert.Equal(t, int64(9), second.Size)
+
+	got, lookupErr := svc.store.GetByUserPath(context.Background(), 1, "/docs/a.txt")
+	require.NoError(t, lookupErr)
+	assert.Equal(t, first.ID, got.ID)
+}
+
+func TestStorageService_RenameFile_TargetConflictRejectedBeforeDiskWrite(t *testing.T) {
+	svc := makeStorageSvc(t)
+
+	src, err := svc.WriteFile(context.Background(), 1, "/src.txt", strings.NewReader("src"))
+	require.NoError(t, err)
+	dst, err := svc.WriteFile(context.Background(), 1, "/dst.txt", strings.NewReader("dst"))
+	require.NoError(t, err)
+
+	_, err = svc.RenameFile(context.Background(), 1, src.ID, "/dst.txt")
+	assert.ErrorIs(t, err, ErrConflict)
+
+	// Neither file's content may have been touched by the rejected move.
+	rc, _, openErr := svc.OpenFile(context.Background(), 1, src.ID)
+	require.NoError(t, openErr)
+	data, _ := io.ReadAll(rc)
+	rc.Close()
+	assert.Equal(t, "src", string(data))
+
+	rc2, _, openErr2 := svc.OpenFile(context.Background(), 1, dst.ID)
+	require.NoError(t, openErr2)
+	data2, _ := io.ReadAll(rc2)
+	rc2.Close()
+	assert.Equal(t, "dst", string(data2))
+}
+
+// ── regression: directory rename cascades (H-4) ───────────────────────────────
+
+func TestStorageService_RenameFile_DirectoryCascadesToDescendants(t *testing.T) {
+	store := newMemFileStore()
+	engine := newMemEngine()
+	userStore := &stubUserStore{users: map[uint64]*User{1: {ID: 1, UUID: "user-1-uuid"}}}
+	svc := newStorageService(store, userStore, newSettingsService(&memSettingsStore{}), t.TempDir())
+	svc.engines[1] = engine
+
+	// Seed the directory marker so memEngine.Move accepts the move.
+	engine.data["/docs"] = nil
+	dirMeta := &File{UserID: 1, Path: "/docs", Name: "docs", Type: EntryDir}
+	require.NoError(t, store.Save(context.Background(), dirMeta))
+
+	_, werr := svc.WriteFile(context.Background(), 1, "/docs/a.txt", strings.NewReader("a"))
+	require.NoError(t, werr)
+	_, werr = svc.WriteFile(context.Background(), 1, "/docs/sub/b.txt", strings.NewReader("b"))
+	require.NoError(t, werr)
+
+	moved, err := svc.RenameFile(context.Background(), 1, dirMeta.ID, "/archive")
+	require.NoError(t, err)
+	assert.Equal(t, "/archive", moved.Path)
+
+	for _, want := range []string{"/archive/a.txt", "/archive/sub/b.txt"} {
+		rec, lookupErr := store.GetByUserPath(context.Background(), 1, want)
+		require.NoError(t, lookupErr, "descendant record missing after cascade: %s", want)
+		assert.NotZero(t, rec.ID)
+	}
+	for _, stale := range []string{"/docs/a.txt", "/docs/sub/b.txt"} {
+		if _, lookupErr := store.GetByUserPath(context.Background(), 1, stale); lookupErr == nil {
+			t.Fatalf("stale descendant record still present: %s", stale)
+		}
+	}
+}

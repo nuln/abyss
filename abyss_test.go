@@ -1036,3 +1036,120 @@ func TestError_ErrorsAs(t *testing.T) {
 	require.True(t, errors.As(e, &target))
 	assert.Equal(t, "not_found", target.Code)
 }
+
+// ── regression: task lifetime (C-1) ───────────────────────────────────────────
+
+func TestTaskService_Submit_DetachedFromRequestContext(t *testing.T) {
+	store := newMemTaskStore()
+	svc := newTaskService(store, newScheduler())
+
+	reqCtx, cancelReq := context.WithCancel(context.Background())
+	defer cancelReq()
+
+	started := make(chan struct{})
+	id, err := svc.Submit(reqCtx, "detached-task", 1, func(taskCtx context.Context) error {
+		close(started)
+		cancelReq() // HTTP handler returned; request context now cancelled
+		timer := time.NewTimer(500 * time.Millisecond)
+		defer timer.Stop()
+		select {
+		case <-taskCtx.Done():
+			return taskCtx.Err() // regression: task died together with the request
+		case <-timer.C:
+			return nil // task survived the request cancellation
+		}
+	})
+	require.NoError(t, err)
+	<-started
+
+	require.Eventually(t, func() bool {
+		tk, getErr := store.GetByID(context.Background(), id)
+		return getErr == nil && tk.Status == TaskSucceeded
+	}, 3*time.Second, 10*time.Millisecond,
+		"task must complete independently of the cancelled request context")
+}
+
+// ── regression: broadcast snapshots (H-2) ─────────────────────────────────────
+
+func TestTaskService_Broadcast_SendsImmutableSnapshot(t *testing.T) {
+	store := newMemTaskStore()
+	svc := newTaskService(store, newScheduler())
+
+	ch := svc.Subscribe(1)
+	defer svc.Unsubscribe(ch)
+
+	release := make(chan struct{})
+	id, err := svc.Submit(context.Background(), "snapshot-task", 1, func(_ context.Context) error {
+		<-release
+		return nil
+	})
+	require.NoError(t, err)
+
+	var first *TaskInfo
+	select {
+	case first = <-ch:
+	case <-time.After(2 * time.Second):
+		t.Fatal("no broadcast received")
+	}
+	require.NotNil(t, first)
+	require.Equal(t, TaskPending, first.Status)
+
+	close(release)
+	require.Eventually(t, func() bool {
+		tk, getErr := store.GetByID(context.Background(), id)
+		return getErr == nil && tk.Status == TaskSucceeded
+	}, 3*time.Second, 10*time.Millisecond)
+
+	// The snapshot delivered while pending must still read as pending even
+	// though the live TaskInfo has since reached its terminal state.
+	assert.Equal(t, TaskPending, first.Status,
+		"broadcast must deliver copies, not the live object")
+}
+
+// ── regression: token type isolation (H-1) ────────────────────────────────────
+
+func TestAuthService_MFATokenCannotBeUsedAsAccessToken(t *testing.T) {
+	svc, users, _ := makeAuthSvc(t)
+	u := registerTestUser(t, users)
+	pu := pluginUsers{authSvc: svc}
+
+	mfaToken, err := pu.IssueMFAToken(u.ID, "otp", time.Minute)
+	require.NoError(t, err)
+
+	if _, verr := svc.VerifyJWT(mfaToken); verr == nil {
+		t.Fatal("MFA intermediate token accepted by VerifyJWT — MFA bypass")
+	}
+}
+
+func TestVerifyMFAToken_RejectsAccessToken(t *testing.T) {
+	svc, users, _ := makeAuthSvc(t)
+	registerTestUser(t, users)
+	pu := pluginUsers{authSvc: svc}
+
+	res, lerr := svc.Login(context.Background(), "test@example.com", "password", "ua", "")
+	require.NoError(t, lerr)
+
+	if _, _, verr := pu.VerifyMFAToken(res.AccessToken); verr == nil {
+		t.Fatal("access token accepted by VerifyMFAToken")
+	}
+}
+
+// ── regression: expired refresh tokens are purged (L4) ────────────────────────
+
+func TestAuthService_Refresh_ExpiredTokenIsPurged(t *testing.T) {
+	svc, users, sessions := makeAuthSvc(t)
+	registerTestUser(t, users)
+	res, lerr := svc.Login(context.Background(), "test@example.com", "password", "ua", "")
+	require.NoError(t, lerr)
+
+	rt, gerr := sessions.GetByHash(context.Background(), sha256Hex(res.RefreshToken))
+	require.NoError(t, gerr)
+	rt.ExpiresAt = time.Now().Add(-time.Minute)
+	require.NoError(t, sessions.Save(context.Background(), rt))
+
+	_, rerr := svc.Refresh(context.Background(), res.RefreshToken)
+	assert.ErrorIs(t, rerr, ErrUnauthorized)
+
+	_, gerr = sessions.GetByID(context.Background(), rt.ID)
+	assert.ErrorIs(t, gerr, ErrNotFound, "expired refresh token should be purged")
+}

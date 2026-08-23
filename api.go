@@ -1156,15 +1156,20 @@ func (a *App) handleIndex(w http.ResponseWriter, r *http.Request) {
 		Json:      template.JS(abyssJSON), //nolint:gosec // abyssJSON is server-generated JSON marshaled from trusted values.
 	}
 
-	t, err := template.New("index").Delims("[{[", "]}]").Parse(htmlContent)
-	if err != nil {
-		slog.Error("failed to parse index template", "err", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
+	// Parse once and cache: htmlContent only depends on the (static)
+	// BaseURL; dynamic values are injected at Execute time.
+	if a.indexTmpl == nil {
+		t, parseErr := template.New("index").Delims("[{[", "]}]").Parse(htmlContent)
+		if parseErr != nil {
+			slog.Error("failed to parse index template", "err", parseErr)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
+			return
+		}
+		a.indexTmpl = t
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := t.Execute(w, id); err != nil {
+	if err := a.indexTmpl.Execute(w, id); err != nil {
 		slog.Error("failed to execute index template", "err", err)
 	}
 }
