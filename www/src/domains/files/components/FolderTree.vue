@@ -22,7 +22,7 @@
             class="folder-arrow"
             :class="{ expanded: folder.expanded }"
             @click.stop="toggleExpand(folder)"
-            :aria-label="folder.expanded ? '收起' : '展开'"
+            :aria-label="folder.expanded ? t('buttons.collapse') : t('buttons.expand')"
           >
             <i class="material-icons">chevron_right</i>
           </button>
@@ -53,6 +53,9 @@
 import { ref, onMounted, watch } from "vue";
 import { files as api } from "@/domains/files/api";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 interface FolderItem {
   name: string;
@@ -136,7 +139,7 @@ onMounted(async () => {
     try {
       folders.value = await fetchFolders(props.basePath);
     } catch (_e) {
-      error.value = "加载失败";
+      error.value = t("errors.loadFailed");
     } finally {
       loading.value = false;
     }

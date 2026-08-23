@@ -45,7 +45,9 @@
     "scrollToTop": "トップへ戻る",
     "saving": "保存中...",
     "deleting": "削除中...",
-    "loading": "読み込み中..."
+    "loading": "読み込み中...",
+    "collapse": "折りたたむ",
+    "expand": "展開"
   },
   "tooltips": {
     "rename": "選択した項目の名前を変更",
@@ -100,7 +102,8 @@
     "invalidOption": "無効なオプション",
     "invalidAuthMethod": "無効な認証方法",
     "invalidRequestParams": "無効なリクエストパラメータ",
-    "sourceIsParent": "ソースは親です"
+    "sourceIsParent": "ソースは親です",
+    "loadFailed": "読み込みに失敗しました"
   },
   "files": {
     "files": "ファイル",

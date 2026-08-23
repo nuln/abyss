@@ -96,23 +96,18 @@ export const usePluginStore = defineStore("plugins", {
                 const messages = (await fetchJSON("/api/plugins/i18n")) as Record<string, any>;
                 if (!messages) return;
                 
-                // Debugging: Attach to window so we can inspect in console
-                (window as any).pluginMessages = messages;
-                
                 Object.keys(messages).forEach(locale => {
                     // Try to match the locale case-insensitively if needed
                     const targetLocale = locale.toLowerCase();
-                    const current = i18n.global.getLocaleMessage(targetLocale) || {};
                     const newMessages = messages[locale];
-                    
+
                     // Simple merge for the top-level keys (plugins)
                     for (const key in newMessages) {
                         i18n.global.mergeLocaleMessage(targetLocale, { [key]: newMessages[key] });
                     }
-                    
-                    console.log(`Merged ${Object.keys(newMessages).length} plugins for locale ${targetLocale}`);
                 });
             } catch (e) {
+                // eslint-disable-next-line no-console
                 console.error("Failed to fetch plugin i18n", e);
             }
         },

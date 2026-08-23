@@ -141,7 +141,10 @@ const passwordClass = computed(() => {
 
 onMounted(async () => {
   layoutStore.loading = true;
-  if (authStore.user === null) return false;
+  if (authStore.user === null) {
+    layoutStore.loading = false;
+    return false;
+  }
   locale.value = authStore.user.locale || "auto";
 
   singleClick.value = authStore.user.singleClick;

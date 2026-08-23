@@ -45,7 +45,9 @@
     "scrollToTop": "맨 위로 이동",
     "saving": "저장 중...",
     "deleting": "삭제 중...",
-    "loading": "로딩 중..."
+    "loading": "로딩 중...",
+    "collapse": "접기",
+    "expand": "펼치기"
   },
   "tooltips": {
     "rename": "선택한 항목 이름 바꾸기",
@@ -100,7 +102,8 @@
     "invalidOption": "잘못된 옵션",
     "invalidAuthMethod": "잘못된 인증 방법",
     "invalidRequestParams": "잘못된 요청 매개변수",
-    "sourceIsParent": "소스가 부모입니다"
+    "sourceIsParent": "소스가 부모입니다",
+    "loadFailed": "불러오기 실패"
   },
   "files": {
     "files": "파일",

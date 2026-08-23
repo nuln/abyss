@@ -45,7 +45,9 @@
     "scrollToTop": "Retour en haut",
     "saving": "Enregistrement...",
     "deleting": "Suppression...",
-    "loading": "Chargement..."
+    "loading": "Chargement...",
+    "collapse": "Réduire",
+    "expand": "Développer"
   },
   "tooltips": {
     "rename": "Renommer l'élément sélectionné",
@@ -100,7 +102,8 @@
     "invalidOption": "Option invalide",
     "invalidAuthMethod": "Méthode d'authentification invalide",
     "invalidRequestParams": "Paramètres de requête invalides",
-    "sourceIsParent": "La source est le parent"
+    "sourceIsParent": "La source est le parent",
+    "loadFailed": "Échec du chargement"
   },
   "files": {
     "files": "Fichiers",

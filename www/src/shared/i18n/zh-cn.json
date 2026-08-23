@@ -50,7 +50,9 @@
     "scrollToTop": "回到顶部",
     "saving": "正在保存...",
     "deleting": "正在删除...",
-    "loading": "正在加载..."
+    "loading": "正在加载...",
+    "collapse": "收起",
+    "expand": "展开"
   },
   "tooltips": {
     "rename": "重命名所选项目",
@@ -105,7 +107,8 @@
     "invalidOption": "无效的选项",
     "invalidAuthMethod": "无效的身份验证方式",
     "invalidRequestParams": "无效的请求参数",
-    "sourceIsParent": "源目录不能是父目录"
+    "sourceIsParent": "源目录不能是父目录",
+    "loadFailed": "加载失败"
   },
   "files": {
     "files": "文件",

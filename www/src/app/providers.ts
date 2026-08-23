@@ -36,12 +36,6 @@ export function registerProviders(app: ReturnType<typeof Vue.createApp>, router:
 
   useGlobalToast(app);
 
-  app.mixin({
-    mounted() {
-      (this as any).$el.__vue__ = this;
-    },
-  });
-
   app.directive("focus", {
     mounted: async (el) => el.focus(),
   });

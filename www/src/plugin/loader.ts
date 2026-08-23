@@ -37,14 +37,21 @@ export async function loadPlugin(slug: string): Promise<void> {
 
     // HMR / Dev Mode support: if slug is in VITE_PLUGIN_DEV_SERVERS, load from local vite
     // Format: VITE_PLUGIN_DEV_SERVERS="album:http://localhost:5174,passkey:http://localhost:5175"
-    const devServers = localStorage.getItem("VITE_PLUGIN_DEV_SERVERS") || "";
-    const devServerMap = Object.fromEntries(
-        devServers.split(",").filter(Boolean).map(s => s.split(":http").map((v, i) => i === 1 ? "http" + v : v))
-    );
+    // Compiled out of production builds.
+    let devUrl: string | undefined;
+    if (import.meta.env.DEV) {
+        const devServers = localStorage.getItem("VITE_PLUGIN_DEV_SERVERS") || "";
+        const devServerMap: Record<string, string> = Object.fromEntries(
+            devServers.split(",").filter(Boolean).map(s => s.split(":http").map((v, i) => i === 1 ? "http" + v : v))
+        );
+        if (devServerMap[slug] && isAllowedDevServer(devServerMap[slug])) {
+            devUrl = devServerMap[slug];
+        }
+    }
 
-    if (devServerMap[slug] && isAllowedDevServer(devServerMap[slug])) {
+    if (devUrl) {
         // console.warn(`[DEBUG] Loading plugin ${slug} from dev server: ${devServerMap[slug]}`);
-        script.src = `${devServerMap[slug]}/index.ts`; // Vite dev server handles .ts directly
+        script.src = `${devUrl}/index.ts`; // Vite dev server handles .ts directly
         script.type = "module";
     } else {
         // Plugin assets are served at /static/plugins/{slug}/...

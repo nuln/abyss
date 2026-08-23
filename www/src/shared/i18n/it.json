@@ -45,7 +45,9 @@
     "scrollToTop": "Torna su",
     "saving": "Salvataggio...",
     "deleting": "Eliminazione...",
-    "loading": "Caricamento..."
+    "loading": "Caricamento...",
+    "collapse": "Comprimi",
+    "expand": "Espandi"
   },
   "tooltips": {
     "rename": "Rinomina elemento selezionato",
@@ -100,7 +102,8 @@
     "invalidOption": "Opzione non valida",
     "invalidAuthMethod": "Metodo di autenticazione non valido",
     "invalidRequestParams": "Parametri della richiesta non validi",
-    "sourceIsParent": "La sorgente è il genitore"
+    "sourceIsParent": "La sorgente è il genitore",
+    "loadFailed": "Caricamento non riuscito"
   },
   "files": {
     "files": "File",

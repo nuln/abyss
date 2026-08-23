@@ -45,7 +45,9 @@
     "scrollToTop": "Desplazar hacia arriba",
     "saving": "Guardando...",
     "deleting": "Borrando...",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "collapse": "Contraer",
+    "expand": "Desplegar"
   },
   "tooltips": {
     "rename": "Renombrar elemento seleccionado",
@@ -100,7 +102,8 @@
     "invalidOption": "Opción inválida",
     "invalidAuthMethod": "Método de autenticación inválido",
     "invalidRequestParams": "Parámetros de solicitud inválidos",
-    "sourceIsParent": "La fuente es el padre"
+    "sourceIsParent": "La fuente es el padre",
+    "loadFailed": "Error al cargar"
   },
   "files": {
     "files": "Archivos",

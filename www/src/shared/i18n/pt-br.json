@@ -45,7 +45,9 @@
     "scrollToTop": "Rolar para o topo",
     "saving": "Salvando...",
     "deleting": "Apagando...",
-    "loading": "Carregando..."
+    "loading": "Carregando...",
+    "collapse": "Collapse",
+    "expand": "Expand"
   },
   "tooltips": {
     "rename": "Renomear item selecionado",
@@ -100,7 +102,8 @@
     "invalidOption": "Opção inválida",
     "invalidAuthMethod": "Método de autenticação inválido",
     "invalidRequestParams": "Parâmetros de solicitação inválidos",
-    "sourceIsParent": "A origem é o pai"
+    "sourceIsParent": "A origem é o pai",
+    "loadFailed": "Load failed"
   },
   "files": {
     "files": "Arquivos",

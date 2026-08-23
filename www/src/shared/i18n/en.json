@@ -50,7 +50,9 @@
     "scrollToTop": "Scroll to top",
     "saving": "Saving...",
     "deleting": "Deleting...",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "collapse": "Collapse",
+    "expand": "Expand"
   },
   "tooltips": {
     "rename": "Rename selected item",
@@ -105,7 +107,8 @@
     "invalidOption": "Invalid option",
     "invalidAuthMethod": "Invalid auth method",
     "invalidRequestParams": "Invalid request params",
-    "sourceIsParent": "Source is parent"
+    "sourceIsParent": "Source is parent",
+    "loadFailed": "Load failed"
   },
   "files": {
     "files": "Files",

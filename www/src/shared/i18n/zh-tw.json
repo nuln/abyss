@@ -45,7 +45,9 @@
     "scrollToTop": "卷動至頂部",
     "saving": "儲存中...",
     "deleting": "刪除中...",
-    "loading": "讀取中..."
+    "loading": "讀取中...",
+    "collapse": "收起",
+    "expand": "展開"
   },
   "tooltips": {
     "rename": "重新命名所選項目",
@@ -100,7 +102,8 @@
     "invalidOption": "無效的選項",
     "invalidAuthMethod": "無效的身份驗證方式",
     "invalidRequestParams": "無效的請求參數",
-    "sourceIsParent": "來源是父目錄"
+    "sourceIsParent": "來源是父目錄",
+    "loadFailed": "載入失敗"
   },
   "files": {
     "files": "檔案",
