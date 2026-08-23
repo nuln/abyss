@@ -63,7 +63,9 @@ abyss/
 ├── identity.go             # 用户模型/权限模型/用户服务 + JWT 签发校验、refresh session + crypto 工具
 ├── api.go                  # 核心 REST 路由注册与 handler（身份/文件/任务/设置）
 ├── storage.go              # StorageEngine 抽象 + path 引擎 + metadata 修复 + MIME 探测/图片处理
-├── plugin.go               # 插件接口宇宙、注册栈、状态管理、插件路由桥接
+├── plugin.go               # 插件机制核心：接口、泛型注册栈、状态管理、拓扑排序
+├── extensions.go           # 插件可选扩展点：配置/认证/存储/钩子/GC/通知/协议/UI
+├── sdk.go                  # 插件 SDK 支撑：Skeleton 基类、事件总线、路由挂接、任务桥接
 ├── task.go                 # 异步任务引擎、订阅广播（SSE 上游）
 ├── abyss_test.go           # 全部测试（单文件）
 ├── docs/                   # 项目文档
