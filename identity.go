@@ -273,22 +273,24 @@ type SessionStore interface {
 // ── authService ──────────────────────────────────────────────────────────────
 
 type authService struct {
-	users           UserStore
-	sessions        SessionStore
-	jwtSecret       []byte
-	accessTTL       time.Duration
-	refreshTTL      time.Duration
-	allowQueryToken bool
+	users            UserStore
+	sessions         SessionStore
+	jwtSecret        []byte
+	encryptionSecret []byte
+	accessTTL        time.Duration
+	refreshTTL       time.Duration
+	allowQueryToken  bool
 }
 
-func newAuthService(users UserStore, sessions SessionStore, jwtSecret []byte, accessTTL, refreshTTL time.Duration, allowQueryToken bool) *authService {
+func newAuthService(users UserStore, sessions SessionStore, jwtSecret, encryptionSecret []byte, accessTTL, refreshTTL time.Duration, allowQueryToken bool) *authService {
 	return &authService{
-		users:           users,
-		sessions:        sessions,
-		jwtSecret:       jwtSecret,
-		accessTTL:       accessTTL,
-		refreshTTL:      refreshTTL,
-		allowQueryToken: allowQueryToken,
+		users:            users,
+		sessions:         sessions,
+		jwtSecret:        jwtSecret,
+		encryptionSecret: encryptionSecret,
+		accessTTL:        accessTTL,
+		refreshTTL:       refreshTTL,
+		allowQueryToken:  allowQueryToken,
 	}
 }
 

@@ -14,6 +14,7 @@
 package abyss
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
@@ -352,9 +353,14 @@ func newAppDependencies(cfg *Config, db *boltDB) (*appDependencies, error) {
 	taskStore := &boltTaskStore{db: db}
 	settingsStore := &boltSettingsStore{db: db}
 
+	encryptionSecret, err := cfg.EncryptionSecretBytes(jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+
 	deps := &appDependencies{
 		userSvc:      &userService{store: userStore},
-		authSvc:      newAuthService(userStore, sessionStore, jwtSecret, cfg.Auth.AccessTokenTTL, cfg.Auth.RefreshTokenTTL, cfg.Auth.AllowQueryToken),
+		authSvc:      newAuthService(userStore, sessionStore, jwtSecret, encryptionSecret, cfg.Auth.AccessTokenTTL, cfg.Auth.RefreshTokenTTL, cfg.Auth.AllowQueryToken),
 		settingsSvc:  newSettingsService(settingsStore),
 		sessionStore: sessionStore,
 	}
@@ -591,11 +597,23 @@ func (u pluginUsers) VerifyMFAToken(tokenStr string) (userID uint64, method stri
 }
 
 func (u pluginUsers) Encrypt(data []byte) (encrypted, nonce []byte, err error) {
-	return aesEncrypt(data, u.authSvc.jwtSecret)
+	// Always encrypt under the dedicated secret (which equals jwtSecret
+	// when auth.encryptionSecret is not configured).
+	return aesEncrypt(data, u.authSvc.encryptionSecret)
 }
 
 func (u pluginUsers) Decrypt(encrypted, nonce []byte) ([]byte, error) {
-	return aesDecrypt(encrypted, nonce, u.authSvc.jwtSecret)
+	if plain, err := aesDecrypt(encrypted, nonce, u.authSvc.encryptionSecret); err == nil {
+		return plain, nil
+	}
+	// Legacy fallback: data written before a dedicated encryptionSecret was
+	// configured was derived from the JWT secret.
+	if !bytes.Equal(u.authSvc.encryptionSecret, u.authSvc.jwtSecret) {
+		if plain, err := aesDecrypt(encrypted, nonce, u.authSvc.jwtSecret); err == nil {
+			return plain, nil
+		}
+	}
+	return nil, ErrInternal
 }
 
 // Config is the top-level application configuration loaded from config.toml.
@@ -623,10 +641,14 @@ type DataConfig struct {
 // AuthConfig holds JWT signing configuration.
 type AuthConfig struct {
 	// JWTSecret is a hex-encoded 32-byte secret. Generated randomly if empty.
-	JWTSecret       string        `toml:"jwtSecret"`
-	AccessTokenTTL  time.Duration `toml:"accessTokenTTL"`
-	RefreshTokenTTL time.Duration `toml:"refreshTokenTTL"`
-	AllowQueryToken bool          `toml:"allowQueryToken"`
+	JWTSecret string `toml:"jwtSecret"`
+	// EncryptionSecret is an optional hex-encoded key used for the plugin
+	// crypto API (Users.Encrypt/Decrypt). When empty, it falls back to
+	// JWTSecret; decryption of pre-existing data always tries both.
+	EncryptionSecret string        `toml:"encryptionSecret"`
+	AccessTokenTTL   time.Duration `toml:"accessTokenTTL"`
+	RefreshTokenTTL  time.Duration `toml:"refreshTokenTTL"`
+	AllowQueryToken  bool          `toml:"allowQueryToken"`
 }
 
 // DatabaseConfig controls BoltDB behaviour.
@@ -837,6 +859,22 @@ func (c *Config) JWTSecretBytes() ([]byte, error) {
 	b, err := hex.DecodeString(c.Auth.JWTSecret)
 	if err != nil {
 		return nil, fmt.Errorf("invalid jwtSecret: %w", err)
+	}
+	return b, nil
+}
+
+// EncryptionSecretBytes resolves the dedicated plugin-crypto key. It falls
+// back to the JWT secret when encryptionSecret is not configured.
+func (c *Config) EncryptionSecretBytes(jwtSecret []byte) ([]byte, error) {
+	if c.Auth.EncryptionSecret == "" {
+		return jwtSecret, nil
+	}
+	b, err := hex.DecodeString(c.Auth.EncryptionSecret)
+	if err != nil {
+		return nil, fmt.Errorf("invalid auth.encryptionSecret: %w", err)
+	}
+	if len(b) < 16 {
+		return nil, fmt.Errorf("auth.encryptionSecret must decode to at least 16 bytes")
 	}
 	return b, nil
 }

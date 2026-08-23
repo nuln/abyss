@@ -11,9 +11,15 @@ dir = "data"
 [auth]
 # Random 32-byte hex string. Auto-generated if empty.
 jwtSecret = ""
+# Optional dedicated key (hex, >=16 bytes) for the plugin crypto API.
+# Falls back to jwtSecret when empty. Rotating it is safe: previously
+# encrypted data stays readable during a transition period.
+encryptionSecret = ""
 accessTokenTTL = "24h"
 refreshTokenTTL = "720h"
-allowQueryToken = true
+# Accept auth tokens from the ?token= query parameter. JWTs in URLs leak
+# into proxy/access logs — enable only for debugging.
+allowQueryToken = false
 
 [database]
 # Optional explicit path. Defaults to {data.dir}/abyss.db

@@ -41,7 +41,7 @@ func newTestApp(t *testing.T) *App {
 	storageSvc.engines[1] = engine // map user 1 to mem engine
 
 	userSvc := &userService{store: users}
-	authSvc := newAuthService(users, sessions, jwtSecret, time.Hour, 7*24*time.Hour, true)
+	authSvc := newAuthService(users, sessions, jwtSecret, jwtSecret, time.Hour, 7*24*time.Hour, true)
 	taskSvc := newTaskService(newMemTaskStore(), newScheduler())
 	app := &App{
 		userSvc:      userSvc,

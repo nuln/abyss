@@ -452,7 +452,7 @@ func makeAuthSvc(t *testing.T) (*authService, *memUserStore, *memSessionStore) {
 	secret := make([]byte, 32)
 	users := newMemUserStore()
 	sessions := newMemSessionStore()
-	svc := newAuthService(users, sessions, secret, time.Hour, 7*24*time.Hour, true)
+	svc := newAuthService(users, sessions, secret, secret, time.Hour, 7*24*time.Hour, true)
 	return svc, users, sessions
 }
 
@@ -1152,4 +1152,56 @@ func TestAuthService_Refresh_ExpiredTokenIsPurged(t *testing.T) {
 
 	_, gerr = sessions.GetByID(context.Background(), rt.ID)
 	assert.ErrorIs(t, gerr, ErrNotFound, "expired refresh token should be purged")
+}
+
+// ── regression: dedicated encryption secret (OPT-7) ───────────────────────────
+
+func TestPluginCrypto_DedicatedSecretRoundtrip(t *testing.T) {
+	jwtSecret := []byte("jwt-secret-bytes-jwt-secret-bytes")
+	encSecret := []byte("dedicated-encryption-key-16byte!")
+	svc := newAuthService(newMemUserStore(), newMemSessionStore(), jwtSecret, encSecret, time.Hour, time.Hour, false)
+	pu := pluginUsers{authSvc: svc}
+
+	plain := []byte("sensitive plugin payload")
+	enc, nonce, err := pu.Encrypt(plain)
+	require.NoError(t, err)
+
+	dec, err := pu.Decrypt(enc, nonce)
+	require.NoError(t, err)
+	assert.Equal(t, plain, dec)
+
+	// The ciphertext must NOT be decryptable with the JWT secret alone
+	// (i.e. the dedicated key is actually in use).
+	if _, err := aesDecrypt(enc, nonce, jwtSecret); err == nil {
+		t.Fatal("ciphertext derived from the dedicated secret should not open with the jwt secret")
+	}
+}
+
+func TestPluginCrypto_LegacyJwtSecretDataStillDecryptable(t *testing.T) {
+	jwtSecret := []byte("jwt-secret-bytes-jwt-secret-bytes")
+	encSecret := []byte("dedicated-encryption-key-16byte!")
+
+	// Data encrypted under the legacy scheme (derived from the JWT secret).
+	legacyEnc, legacyNonce, err := aesEncrypt([]byte("legacy data"), jwtSecret)
+	require.NoError(t, err)
+
+	// After enabling a dedicated secret, old data must remain readable.
+	svc := newAuthService(newMemUserStore(), newMemSessionStore(), jwtSecret, encSecret, time.Hour, time.Hour, false)
+	pu := pluginUsers{authSvc: svc}
+	dec, derr := pu.Decrypt(legacyEnc, legacyNonce)
+	require.NoError(t, derr, "legacy data must stay decryptable after key rotation")
+	assert.Equal(t, []byte("legacy data"), dec)
+}
+
+func TestPluginCrypto_DefaultBehaviourUnchangedWithoutConfig(t *testing.T) {
+	cfg := Config{}
+	require.Empty(t, cfg.Auth.EncryptionSecret)
+	secret, err := cfg.EncryptionSecretBytes([]byte("fallback"))
+	require.NoError(t, err)
+	assert.Equal(t, []byte("fallback"), secret,
+		"without auth.encryptionSecret the behaviour must match the pre-split scheme")
+
+	bad := Config{Auth: AuthConfig{EncryptionSecret: "not-hex!"}}
+	_, err = bad.EncryptionSecretBytes([]byte("fallback"))
+	assert.Error(t, err)
 }
