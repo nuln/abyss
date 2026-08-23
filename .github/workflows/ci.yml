@@ -22,23 +22,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout
+        uses: actions/checkout@v7
 
       - name: Install pnpm
-        uses: pnpm/action-setup
+        uses: pnpm/action-setup@v6
         with:
           # Reads the version from the "packageManager" field
           package_json_file: www/package.json
 
       - name: Set up Node.js
-        uses: actions/setup-node
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'pnpm'
           cache-dependency-path: www/pnpm-lock.yaml
 
       - name: Set up Go
-        uses: actions/setup-go
+        uses: actions/setup-go@v7
         with:
           go-version: '1.26'
           cache: true
