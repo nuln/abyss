@@ -62,6 +62,14 @@ Refer to `config.toml.example` for a complete list of options.
 - `make lint`: Run the project linter.
 - `make clean`: Remove build artifacts.
 
+## Documentation
+
+Additional documentation lives in the [`docs/`](docs/README.md) directory:
+
+- [Project Context](docs/project-context.md) - architecture, tech stack and data model.
+- [Auth & Permissions](docs/auth-and-permissions.md) / [BoltDB Usage](docs/boltdb-usage.md) / [Plugin Development](docs/plugin-development.md).
+- [Code Review](docs/code-review.md) - internal backend audit report.
+
 ## License
 
 [Add License Info Here]

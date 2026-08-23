@@ -1,12 +1,13 @@
 # --- Binaries & Build Artifacts ---
 abyss
 abyss.exe
+example/example
 coverage.out
 coverage.html
 coverage.txt
 
-# --- Frontend Build (Submodule artifacts) ---
-# Note: Source is in 'www' submodule, we only ignore build results here.
+# --- Frontend Build (www/ directory) ---
+# Note: Source lives in 'www/', we only ignore build results here.
 www/dist/*
 !www/dist/.gitkeep
 www/node_modules/
