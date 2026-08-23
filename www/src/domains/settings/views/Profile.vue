@@ -170,7 +170,9 @@ const updatePassword = async (event: Event) => {
       password: password.value,
     };
     await api.update(data, ["password"], currentPassword.value, false);
-    authStore.updateUser(data);
+    // Never merge the plaintext password into the global user state.
+    const { password: _pw, ...safeUser } = data;
+    authStore.updateUser(safeUser as typeof authStore.user);
     $showSuccess(t("settings.passwordUpdated"));
   } catch (e: any) {
     $showError(e);

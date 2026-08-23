@@ -166,7 +166,9 @@ const submit = async (event: Event) => {
         },
       });
     } else {
-      auth.parseToken(res.token);
+      // auth.login() already stored both tokens and scheduled the silent
+      // refresh; calling parseToken here would replace that with a hard
+      // logout timer at access-token expiry.
       router.push({ path: redirect });
     }
   } catch (e: unknown) {

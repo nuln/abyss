@@ -91,7 +91,7 @@ const fetchFolders = async (path: string): Promise<FolderItem[]> => {
       .filter((item: any) => item.isDir)
       .map((item: any) => ({
         name: item.name,
-        path: path === "/" ? `/${item.name}/` : `${path}${item.name}/`,
+        path: path === "/" ? `/${encodeURIComponent(item.name)}/` : `${path}${encodeURIComponent(item.name)}/`,
         expanded: false,
         hasSubfolders: true, // Assume has subfolders, will check on expand
       }));
@@ -125,7 +125,7 @@ const navigateToFolder = (folder: FolderItem) => {
   if (!folder.expanded) {
     toggleExpand(folder);
   }
-  router.push(`/files${folder.path}`);
+  router.push(`/files${folder.path.split("/").map(encodeURIComponent).join("/")}`);
   emit("navigate", folder.path);
 };
 

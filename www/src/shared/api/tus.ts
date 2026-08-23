@@ -40,12 +40,14 @@ export async function upload(
           ? err.originalResponse.getStatus()
           : 0;
 
-        // Do not retry for non-transient errors
+        // Do not retry for non-transient errors. A stale auth header (401)
+        // cannot recover by retrying the same request either.
         if (
           status === 409 ||
           status === 507 ||
           status === 413 ||
-          status === 403
+          status === 403 ||
+          status === 401
         ) {
           return false;
         }

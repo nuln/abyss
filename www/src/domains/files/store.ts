@@ -57,8 +57,10 @@ export const useFileStore = defineStore("file", {
 
 const UPLOADS_LIMIT = 5;
 
-const beforeUnload = (event: Event) => {
+const beforeUnload = (event: BeforeUnloadEvent) => {
     event.preventDefault();
+    // Required by Firefox/Safari to actually show the confirmation dialog.
+    event.returnValue = "";
 };
 
 export const useUploadStore = defineStore("upload", () => {

@@ -226,7 +226,7 @@ async function loadFolder(path: string) {
         name: item.name,
         isDir: item.isDir,
         type: item.type || '',
-        path: path === '/' ? `/${item.name}` : `${path}/${item.name}`
+        path: path === '/' ? `/${encodeURIComponent(item.name)}` : `${path}/${encodeURIComponent(item.name)}`
       }))
     currentPath.value = path
   } catch (_e) {

@@ -9,7 +9,7 @@ import {
 } from "@/domains/auth/api";
 import type { JwtPayload } from "jwt-decode";
 import { jwtDecode } from "jwt-decode";
-import { authMethod, noAuth, logoutPage, baseURL } from "@/shared/utils/constants";
+import { noAuth, logoutPage, baseURL } from "@/shared/utils/constants";
 import { setSafeTimeout } from "@/shared/api/utils";
 
 const ACCESS_TOKEN_KEY = "accessToken";
@@ -22,8 +22,10 @@ interface AccessTokenClaims extends JwtPayload {
     user?: IUser;
 }
 
+const cookieSecure = window.location.protocol === "https:" ? "; Secure" : "";
+
 export function storeAccessToken(token: string) {
-    document.cookie = `auth=${token}; Path=/; SameSite=Strict;`;
+    document.cookie = `auth=${token}; Path=/; SameSite=Strict;${cookieSecure}`;
     localStorage.setItem(ACCESS_TOKEN_KEY, token);
 
     const authStore = useAuthStore();
@@ -64,13 +66,26 @@ export function getRefreshToken(): string | null {
 }
 
 function clearTokens() {
-    document.cookie = "auth=; Max-Age=0; Path=/; SameSite=Strict;";
+    document.cookie = `auth=; Max-Age=0; Path=/; SameSite=Strict;${cookieSecure}`;
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem("jwt");
 }
 
-export async function refreshAccessToken(): Promise<boolean> {
+let refreshInFlight: Promise<boolean> | null = null;
+
+// Single-flight wrapper: concurrent callers (multiple tabs/timers hitting
+// the expiry window together) share one refresh request.
+export function refreshAccessToken(): Promise<boolean> {
+    if (!refreshInFlight) {
+        refreshInFlight = doRefreshAccessToken().finally(() => {
+            refreshInFlight = null;
+        });
+    }
+    return refreshInFlight;
+}
+
+async function doRefreshAccessToken(): Promise<boolean> {
     const refreshToken = getRefreshToken();
     if (!refreshToken) {
         return false;
@@ -93,40 +108,23 @@ export async function refreshAccessToken(): Promise<boolean> {
 export function parseToken(token: string) {
     const data = jwtDecode<AccessTokenClaims>(token);
 
-    document.cookie = `auth=${token}; Path=/; SameSite=Strict;`;
     localStorage.setItem("jwt", token);
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
-
-    const authStore = useAuthStore();
-    authStore.jwt = token;
+    // storeAccessToken writes the cookie/store and schedules the silent
+    // refresh; do NOT arm a hard logout at expiry — that would defeat the
+    // dual-token design and kick users out mid-session.
+    storeAccessToken(token);
 
     if (data.user) {
-        authStore.setUser(data.user);
+        useAuthStore().setUser(data.user as IUser);
     } else if (data.uid) {
         void getCurrentUser()
             .then((user) => {
-                authStore.setUser(user);
+                useAuthStore().setUser(user);
             })
             .catch(() => {
                 // Ignore profile hydration failures.
             });
     }
-
-    if (logoutPage !== "/login" && authMethod === "proxy") {
-        return;
-    }
-
-    if (authStore.logoutTimer) {
-        clearTimeout(authStore.logoutTimer);
-    }
-
-    const expiresAt = new Date(data.exp! * 1000);
-    const timeout = expiresAt.getTime() - Date.now();
-    authStore.setLogoutTimer(
-        setSafeTimeout(() => {
-            void logout("inactivity");
-        }, timeout),
-    );
 }
 
 export async function validateLogin() {

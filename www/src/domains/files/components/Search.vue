@@ -88,6 +88,7 @@ const fileStore = useFileStore();
 const { currentPromptName } = storeToRefs(layoutStore);
 
 const prompt = ref<string>("");
+let searchController: AbortController | null = null;
 const active = ref<boolean>(false);
 const ongoing = ref<boolean>(false);
 const results = ref<any[]>([]);
@@ -207,10 +208,17 @@ const submit = async (event: Event) => {
 
   ongoing.value = true;
 
+  // Cancel any in-flight search so a slow stale response cannot overwrite
+  // fresher results.
+  searchController?.abort();
+  searchController = new AbortController();
+
   try {
-    results.value = await search(path, prompt.value);
+    results.value = await search(path, prompt.value, searchController.signal);
   } catch (error: any) {
-    $showError(error);
+    if (error?.name !== "AbortError") {
+      $showError(error);
+    }
   }
 
   ongoing.value = false;

@@ -2,7 +2,11 @@
   <div :class="{ 'centered-error-container': error }">
     <breadcrumbs v-if="error || fileStore.req?.type === undefined" base="/files" />
     <errors v-if="error" :errorCode="error.status" inline />
-    <component v-else-if="currentView" :is="currentView"></component>
+    <component
+        v-else-if="currentView"
+        :is="currentView"
+        :key="route.path"
+    ></component>
     <div v-else>
       <h2 class="message delayed">
         <div class="spinner">
