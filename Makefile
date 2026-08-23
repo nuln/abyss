@@ -109,7 +109,12 @@ clean:
 
 RELEASE_PLATFORMS := linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64
 
-release-build: ui-build
+release-build:
+	@if [ ! -d "$(UI_DIR)/node_modules" ]; then \
+		echo "Installing frontend dependencies..."; \
+		cd $(UI_DIR) && pnpm install --frozen-lockfile --silent; \
+	fi
+	@$(MAKE) ui-build
 	@echo "Cross-compiling release binaries ($(RELEASE_PLATFORMS))..."
 	@mkdir -p dist/release
 	@for platform in $(RELEASE_PLATFORMS); do \
