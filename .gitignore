@@ -1,7 +1,9 @@
 # --- Binaries & Build Artifacts ---
-abyss
-abyss.exe
-example/example
+# Rooted so they cannot shadow source dirs like cmd/abyss/.
+/abyss
+/abyss.exe
+/example/abyss
+/example/example
 coverage.out
 coverage.html
 coverage.txt
