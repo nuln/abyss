@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // The module under test pulls in app constants which touch `window`;
 // stub them for the node test environment.
