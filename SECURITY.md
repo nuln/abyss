@@ -39,9 +39,10 @@ You can expect an initial response within 7 days.
 
 | Item | Status |
 |---|---|
-| Token storage in `localStorage` | Known trade-off. HttpOnly-cookie migration is planned but requires reworking the plugin token-issuance contract. Primary XSS vectors have been eliminated (EPUB scripting disabled, Markdown sanitised via DOMPurify). |
+| ~~Token storage in `localStorage`~~ | **Resolved.** The SPA is fully cookie-based: `abyss_at`/`abyss_rt` are HttpOnly and never readable by JavaScript. Legacy localStorage tokens from older builds are authenticated during a transition window and scrubbed afterwards. |
 | `SameSite=Strict` cookie without CSRF tokens | Strict SameSite blocks cross-site carries for all non-GET requests; no state-changing GET endpoints exist. |
-| SSE endpoint allows any origin | Read-only task events; auth cookie is SameSite=Strict so it is never attached cross-site. |
+| SSE endpoint allows any origin | Read-only task events; auth cookies are SameSite=Strict so they are never attached cross-site. |
+| Plugin crypto keys derive from `jwtSecret` by default | Set `auth.encryptionSecret` to isolate them; decryption stays backward-compatible with previously encrypted data. |
 
 ## Hardening Recommendations for Production
 

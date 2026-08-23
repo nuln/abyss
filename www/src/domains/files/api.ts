@@ -106,8 +106,6 @@ async function postResources(url: string, content: ApiContent = "", overwrite = 
   return new Promise((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open("POST", `${baseURL}/api/resources${url}?override=${overwrite}`, true);
-    request.setRequestHeader("X-Auth", useAuthStore().jwt);
-
     if (typeof onupload === "function") {
       request.upload.onprogress = onupload;
     }

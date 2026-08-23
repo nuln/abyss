@@ -6,12 +6,10 @@ import { fetchJSON } from "@/domains/auth/api";
 export const useAuthStore = defineStore("auth", {
     state: (): {
         user: IUser | null;
-        jwt: string;
         logoutTimer: number | null;
         initialized: boolean;
     } => ({
         user: null,
-        jwt: "",
         logoutTimer: null,
         initialized: true,
     }),

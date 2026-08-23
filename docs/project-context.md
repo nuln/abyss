@@ -43,12 +43,15 @@ Abyss 采用「轻核心 + 可插拔扩展」架构：
 
 - REST API 主通道：`/api/*`
 - 实时通道：SSE `GET /api/tasks/events`
-- 认证：JWT Access Token + Refresh Token
+- 认证：JWT Access Token + Refresh Token（HttpOnly Cookie 会话为主通道）
 - Token 传递优先级（后端中间件）：
   1. `X-Auth`
   2. `Authorization: Bearer <token>`
-  3. URL Query `auth`（仅 `allowQueryToken=true`）
-  4. Cookie `auth`
+  3. URL Query `auth`（仅 `allowQueryToken=true`，默认关闭）
+  4. Cookie `auth`（旧版前端遗留）
+  5. Cookie `abyss_at`（当前 SPA 主通道，HttpOnly）
+- 登录/刷新/登出同时下发或清除 `abyss_at` / `abyss_rt`（HttpOnly,
+  SameSite=Strict, HTTPS 下带 Secure；`abyss_rt` 仅限 `/api/auth` 路径）
 
 ---
 
@@ -506,7 +509,7 @@ func init() {
 
 前端统一 fetch 封装：`www/src/shared/api/utils.ts`
 
-- 默认自动附带 `X-Auth: <jwt>`
+- 认证依赖同源自动携带的 HttpOnly Cookie（不再注入 X-Auth 头）
 - 非 2xx 抛 `StatusError`
 - 401 可触发统一未授权处理器
 
@@ -653,7 +656,7 @@ func WriteJSON(w http.ResponseWriter, status int, v any) {
 tokenStr := r.Header.Get("X-Auth")
 if tokenStr == "" { /* Authorization Bearer */ }
 if tokenStr == "" && allowQueryToken { /* ?auth= */ }
-if tokenStr == "" { /* cookie auth */ }
+if tokenStr == "" { /* cookie "auth"（旧版），再 cookie "abyss_at"（当前） */ }
 ```
 
 ### A.3 Plugin Manager 初始化
