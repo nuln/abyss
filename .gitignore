@@ -5,6 +5,7 @@ example/example
 coverage.out
 coverage.html
 coverage.txt
+/dist/
 
 # --- Frontend Build (www/ directory) ---
 # Note: Source lives in 'www/', we only ignore build results here.

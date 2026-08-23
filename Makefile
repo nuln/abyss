@@ -93,5 +93,42 @@ fmt:
 clean:
 	@echo "Cleaning up..."
 	rm -f coverage.out
+	rm -rf dist
 	@echo "Delegating UI clean to $(UI_DIR)/Makefile..."
 	@$(MAKE) -C $(UI_DIR) clean --no-print-directory
+
+# --- Release ---
+#
+# release-build  Cross-compile the standalone server (cmd/abyss) for all
+#                release platforms into dist/release/.
+# release-assets Build everything and publish a GitHub release. Invoked by
+#                CI on tag push via the shared core-assets action:
+#                    make release-assets TAG=v1.2.3
+
+.PHONY: release-build release-assets
+
+RELEASE_PLATFORMS := linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64
+
+release-build: ui-build
+	@echo "Cross-compiling release binaries ($(RELEASE_PLATFORMS))..."
+	@mkdir -p dist/release
+	@for platform in $(RELEASE_PLATFORMS); do \
+		os=$${platform%%-*}; arch=$${platform##*-}; \
+		ext=; archive=tar.gz; \
+		if [ "$$os" = "windows" ]; then ext=.exe; archive=zip; fi; \
+		name=abyss-$(TAG)-$$platform; \
+		echo "  building $$name"; \
+		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch \
+			go build -trimpath -ldflags "-s -w" \
+			-o dist/release/$$name$$ext ./cmd/abyss || exit 1; \
+		( cd dist/release && \
+			if [ "$$archive" = "zip" ]; then zip -q $$name.zip $$name$$ext; \
+			else tar czf $$name.tar.gz $$name$$ext; fi; \
+			rm -f $$name$$ext ); \
+	done
+	@echo "Release artifacts ready in dist/release/"
+
+release-assets: release-build
+	@if [ -z "$(TAG)" ]; then echo "usage: make release-assets TAG=v1.2.3" >&2; exit 2; fi
+	@if [ -n "$$GITHUB_TOKEN" ]; then export GH_TOKEN="$$GITHUB_TOKEN"; fi; \
+	gh release create "$(TAG)" --title "$(TAG)" --generate-notes dist/release/*
