@@ -58,15 +58,14 @@ Abyss 采用「轻核心 + 可插拔扩展」架构：
 
 ```text
 abyss/
-├── app.go                  # 应用 Bootstrap / 依赖装配 / 服务器生命周期
-├── config.go               # 配置加载、默认值、flag 覆盖、JWT secret 自动生成 + 全局设置模型与服务
+├── app.go                  # 应用 Bootstrap / 依赖装配 / 生命周期 + 配置加载与全局设置 + 统一错误模型
 ├── boltdb.go               # BoltDB 封装 + 所有核心存储实现 + PluginStore
 ├── identity.go             # 用户模型/权限模型/用户服务 + JWT 签发校验、refresh session + crypto 工具
 ├── api.go                  # 核心 REST 路由注册与 handler（身份/文件/任务/设置）
 ├── storage.go              # StorageEngine 抽象 + path 引擎 + metadata 修复 + MIME 探测/图片处理
 ├── plugin.go               # 插件接口宇宙、注册栈、状态管理、插件路由桥接
 ├── task.go                 # 异步任务引擎、订阅广播（SSE 上游）
-├── errors.go               # 统一错误码与错误包装
+├── abyss_test.go           # 全部测试（单文件）
 ├── docs/                   # 项目文档
 ├── plugins/                # 社区/基础插件（totp/trash/webdav）
 ├── pro/                    # Pro 插件（album/passkey/sync/...）
@@ -381,7 +380,7 @@ sequenceDiagram
 
 执行顺序（关键）：
 
-1. 配置加载与 flag 覆盖（`config.go`）
+1. 配置加载与 flag 覆盖（`app.go`）
 2. 创建数据目录
 3. 打开 BoltDB 并建 schema
 4. 装配服务：user/auth/storage/task/settings
