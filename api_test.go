@@ -1479,3 +1479,144 @@ func TestStorageSwitchToSharded(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "sharded", engine.Name())
 }
+
+// ── regression: HttpOnly cookie auth channel ──────────────────────────────────
+
+func extractAuthCookies(t *testing.T, rr *httptest.ResponseRecorder) (at, rt *http.Cookie) {
+	t.Helper()
+	for _, c := range rr.Result().Cookies() {
+		switch c.Name {
+		case accessCookieName:
+			at = c
+		case refreshCookieName:
+			rt = c
+		}
+	}
+	return at, rt
+}
+
+func TestAuthCookies_IssuedOnLogin(t *testing.T) {
+	app := newTestApp(t)
+	doPostRequest(t, app, "/api/signup", map[string]any{
+		"email": "cookie@example.com", "username": "cookieuser", "password": "password",
+	})
+	rr := doPostRequest(t, app, "/api/auth/login", map[string]any{
+		"email": "cookie@example.com", "password": "password",
+	})
+	require.Equal(t, http.StatusOK, rr.Code)
+
+	at, rt := extractAuthCookies(t, rr)
+	require.NotNil(t, at, "abyss_at cookie missing")
+	require.NotNil(t, rt, "abyss_rt cookie missing")
+	assert.True(t, at.HttpOnly)
+	assert.True(t, rt.HttpOnly)
+	assert.Equal(t, http.SameSiteStrictMode, at.SameSite)
+	assert.Positive(t, at.MaxAge)
+	assert.Equal(t, "/api/auth", rt.Path, "refresh cookie must be scoped to the auth endpoints")
+
+	// The JSON body keeps carrying the tokens for existing clients.
+	var res struct {
+		Data AuthResult `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rr.Body.Bytes(), &res))
+	assert.NotEmpty(t, res.Data.AccessToken)
+}
+
+func TestAuthMiddleware_AcceptsHttpOnlyAccessCookie(t *testing.T) {
+	app := newTestApp(t)
+	doPostRequest(t, app, "/api/signup", map[string]any{
+		"email": "mid@example.com", "username": "miduser", "password": "password",
+	})
+	rr := doPostRequest(t, app, "/api/auth/login", map[string]any{
+		"email": "mid@example.com", "password": "password",
+	})
+	at, _ := extractAuthCookies(t, rr)
+	require.NotNil(t, at)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	req.AddCookie(at)
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestRefresh_WorksWithCookieOnly(t *testing.T) {
+	app := newTestApp(t)
+	doPostRequest(t, app, "/api/signup", map[string]any{
+		"email": "rf@example.com", "username": "rfuser", "password": "password",
+	})
+	rr := doPostRequest(t, app, "/api/auth/login", map[string]any{
+		"email": "rf@example.com", "password": "password",
+	})
+	_, rt := extractAuthCookies(t, rr)
+	require.NotNil(t, rt)
+
+	// Empty body: the refresh token comes from the cookie.
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/refresh", bytes.NewReader(nil))
+	req.AddCookie(rt)
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	newAT, newRT := extractAuthCookies(t, rec)
+	require.NotNil(t, newAT, "rotated access cookie missing")
+	require.NotNil(t, newRT, "rotated refresh cookie missing")
+
+	var res struct {
+		Data AuthResult `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+	assert.NotEmpty(t, res.Data.AccessToken)
+}
+
+func TestRefresh_InvalidCookieClearsAuthCookies(t *testing.T) {
+	app := newTestApp(t)
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/refresh", bytes.NewReader(nil))
+	req.AddCookie(&http.Cookie{Name: refreshCookieName, Value: "bogus"})
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+
+	cleared := false
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == accessCookieName && c.MaxAge < 0 {
+			cleared = true
+		}
+	}
+	assert.True(t, cleared, "dead cookies should be expired out on failed refresh")
+}
+
+func TestLogout_WithCookieRevokesAndClears(t *testing.T) {
+	app := newTestApp(t)
+	doPostRequest(t, app, "/api/signup", map[string]any{
+		"email": "lo@example.com", "username": "louser", "password": "password",
+	})
+	rr := doPostRequest(t, app, "/api/auth/login", map[string]any{
+		"email": "lo@example.com", "password": "password",
+	})
+	at, rt := extractAuthCookies(t, rr)
+	require.NotNil(t, rt)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", bytes.NewReader(nil))
+	req.AddCookie(at) // logout sits behind authMW
+	req.AddCookie(rt)
+	rec := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	bothCleared := 0
+	for _, c := range rec.Result().Cookies() {
+		if (c.Name == accessCookieName || c.Name == refreshCookieName) && c.MaxAge < 0 {
+			bothCleared++
+		}
+	}
+	assert.Equal(t, 2, bothCleared, "both cookies must be expired on logout")
+
+	// Refreshing with the now-revoked token must fail.
+	req2 := httptest.NewRequest(http.MethodPost, "/api/auth/refresh", bytes.NewReader(nil))
+	req2.AddCookie(rt)
+	rec2 := httptest.NewRecorder()
+	app.Router.ServeHTTP(rec2, req2)
+	assert.Equal(t, http.StatusUnauthorized, rec2.Code)
+	_ = at
+}

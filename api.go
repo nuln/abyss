@@ -412,6 +412,10 @@ func (a *App) issueLoginToken(w http.ResponseWriter, r *http.Request, user *User
 		WriteErr(w, err)
 		return
 	}
+	// Dual channel: tokens stay in the JSON body for existing clients, and
+	// HttpOnly cookies are issued for cookie-based sessions.
+	setAuthCookies(w, r, res.AccessToken, res.RefreshToken,
+		a.authSvc.accessTTL, a.authSvc.refreshTTL)
 	WriteJSON(w, http.StatusOK, res)
 }
 
@@ -419,15 +423,28 @@ func (a *App) handleRefresh(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		RefreshToken string `json:"refreshToken"`
 	}
-	if decodeErr := DecodeJSON(r, &req); decodeErr != nil {
+	if decodeErr := DecodeJSON(r, &req); decodeErr != nil && decodeErr != io.EOF {
 		WriteJSON(w, http.StatusBadRequest, ErrorResponse("invalid json"))
+		return
+	}
+	// Cookie-based clients may omit the body entirely.
+	if req.RefreshToken == "" {
+		if cookie, err := r.Cookie(refreshCookieName); err == nil {
+			req.RefreshToken = cookie.Value
+		}
+	}
+	if req.RefreshToken == "" {
+		WriteJSON(w, http.StatusBadRequest, ErrorResponse("missing refresh token"))
 		return
 	}
 	result, err := a.authSvc.Refresh(r.Context(), req.RefreshToken)
 	if err != nil {
+		clearAuthCookies(w, r) // invalid/expired: drop the dead cookies
 		WriteErr(w, err)
 		return
 	}
+	setAuthCookies(w, r, result.AccessToken, result.RefreshToken,
+		a.authSvc.accessTTL, a.authSvc.refreshTTL)
 	WriteJSON(w, http.StatusOK, result)
 }
 
@@ -435,11 +452,19 @@ func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		RefreshToken string `json:"refreshToken"`
 	}
-	if err := DecodeJSON(r, &req); err != nil {
-		WriteJSON(w, http.StatusBadRequest, ErrorResponse("invalid json"))
+	if err := DecodeJSON(r, &req); err != nil && err != io.EOF {
+		WriteErr(w, err)
 		return
 	}
-	_ = a.authSvc.Logout(r.Context(), req.RefreshToken)
+	if req.RefreshToken == "" {
+		if cookie, err := r.Cookie(refreshCookieName); err == nil {
+			req.RefreshToken = cookie.Value
+		}
+	}
+	if req.RefreshToken != "" {
+		_ = a.authSvc.Logout(r.Context(), req.RefreshToken)
+	}
+	clearAuthCookies(w, r)
 	WriteJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 

@@ -482,9 +482,13 @@ func authMiddleware(svc *authService) func(http.Handler) http.Handler {
 				}
 			}
 			if tokenStr == "" {
-				cookie, err := r.Cookie("auth")
-				if err == nil {
-					tokenStr = cookie.Value
+				// Cookie channels: legacy JS-managed "auth" cookie first,
+				// then the server-issued HttpOnly access-token cookie.
+				for _, name := range []string{"auth", "abyss_at"} {
+					if cookie, err := r.Cookie(name); err == nil && cookie.Value != "" {
+						tokenStr = cookie.Value
+						break
+					}
 				}
 			}
 
@@ -502,6 +506,70 @@ func authMiddleware(svc *authService) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// ── Auth cookies (HttpOnly channel) ──────────────────────────────────────────
+
+const (
+	accessCookieName  = "abyss_at"
+	refreshCookieName = "abyss_rt"
+)
+
+// secureCookie reports whether the Secure attribute should be set, based on
+// the request TLS state or a trusted proxy header.
+func secureCookie(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	return r.Header.Get("X-Forwarded-Proto") == "https"
+}
+
+// setAuthCookies issues HttpOnly access/refresh cookies alongside the JSON
+// response body. Existing clients that read tokens from the body keep
+// working unchanged; cookie-capable clients can stop storing tokens.
+func setAuthCookies(w http.ResponseWriter, r *http.Request, access, refresh string, accessTTL, refreshTTL time.Duration) {
+	secure := secureCookie(r)
+	http.SetCookie(w, &http.Cookie{
+		Name:     accessCookieName,
+		Value:    access,
+		Path:     "/",
+		MaxAge:   int(accessTTL.Seconds()),
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshCookieName,
+		Value:    refresh,
+		Path:     "/api/auth",
+		MaxAge:   int(refreshTTL.Seconds()),
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
+// clearAuthCookies expires both auth cookies.
+func clearAuthCookies(w http.ResponseWriter, r *http.Request) {
+	secure := secureCookie(r)
+	http.SetCookie(w, &http.Cookie{
+		Name:     accessCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     refreshCookieName,
+		Value:    "",
+		Path:     "/api/auth",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteStrictMode,
+	})
 }
 
 // ── Crypto ──────────────────────────────────────────────────────────────────
