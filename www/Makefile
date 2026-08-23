@@ -2,7 +2,7 @@
 #
 # This Makefile is used to manage the frontend build process.
 
-.PHONY: all help setup build dev lint fmt clean
+.PHONY: all help setup build dev lint test fmt clean
 
 all: setup fmt lint build
 
@@ -12,6 +12,7 @@ help:
 	@echo "  build    - Build production assets"
 	@echo "  dev      - Start development server"
 	@echo "  lint     - Run ESLint"
+	@echo "  test     - Run unit tests (vitest)"
 	@echo "  fmt      - Format code using ESLint fix"
 	@echo "  clean    - Remove build artifacts"
 
@@ -37,6 +38,10 @@ dev:
 lint:
 	@echo "Linting frontend..."
 	@pnpm lint
+
+test:
+	@echo "Testing frontend..."
+	@pnpm test
 
 fmt:
 	@echo "Formatting frontend..."

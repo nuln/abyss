@@ -66,8 +66,10 @@ plugins-build:
 # --- Development ---
 
 test:
-	@echo "Running tests..."
+	@echo "Running Go tests..."
 	go test -v ./...
+	@echo "Delegating UI tests to $(UI_DIR)/Makefile..."
+	@$(MAKE) -C $(UI_DIR) test --no-print-directory
 
 coverage:
 	@echo "Running coverage..."
