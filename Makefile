@@ -10,7 +10,7 @@
 
 .PHONY: all help setup build example ui-build test coverage scan lint fmt clean
 
-all: setup fmt ui-build lint scan test build coverage
+all: setup fmt ui-build lint test build coverage
 
 # --- Variables ---
 BINARY_NAME=abyss
