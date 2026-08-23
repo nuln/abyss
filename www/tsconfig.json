@@ -1,0 +1,33 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": [
+    "src/**/*",
+    "src/**/*.vue",
+    "vite.config.*",
+    "../plugins/*/www/**/*",
+    "../plugins/*/www/**/*.vue"
+  ],
+  "exclude": [
+    "src/**/__tests__/*",
+    "src/components/prompts/Share.vue"
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "moduleResolution": "bundler",
+    "types": [
+      "node",
+      "vite/client",
+      "@intlify/unplugin-vue-i18n/messages"
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "vue": ["./node_modules/vue"],
+      "vue-router": ["./node_modules/vue-router"],
+      "vue-i18n": ["./node_modules/vue-i18n"],
+      "dayjs": ["./node_modules/dayjs"],
+      "qrcode.vue": ["./node_modules/qrcode.vue"]
+    },
+    "noUncheckedIndexedAccess": false,
+    "noEmit": true
+  }
+}

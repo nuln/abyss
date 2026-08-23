@@ -1,0 +1,248 @@
+/* Import Inter font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/**
+ * Base Styles - Minimalist White Theme
+ */
+
+/* ═══════════════════════════════════════════════════
+   GLOBAL RESET & DEFAULTS
+   ═══════════════════════════════════════════════════ */
+
+* {
+  box-sizing: border-box;
+}
+
+*,
+*:hover,
+*:active,
+*:focus {
+  outline: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  letter-spacing: var(--tracking-normal);
+  padding-top: 0;
+  background: var(--surface-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: var(--text-link);
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-accent-light);
+}
+
+img {
+  max-width: 100%;
+}
+
+audio,
+video {
+  width: 100%;
+}
+
+.mobile-only {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════════ */
+
+.container {
+  width: 95%;
+  max-width: 960px;
+  margin: var(--space-4) auto 0;
+}
+
+#app {
+  transition: padding var(--transition-normal);
+}
+
+#app.multiple {
+  padding-bottom: 4em;
+}
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION / SIDEBAR
+   ═══════════════════════════════════════════════════ */
+
+nav {
+  width: 16em;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: var(--surface-card);
+  border-right: 1px solid var(--border-subtle);
+  height: 100vh;
+  transition: transform var(--transition-normal);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  overflow: visible !important;
+}
+
+html[dir="rtl"] nav {
+  left: initial;
+  right: 0;
+  border-right: none;
+  border-left: 1px solid var(--border-subtle);
+}
+
+nav .action {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: var(--space-2) var(--space-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background-color var(--transition-fast);
+}
+
+nav .action:hover {
+  background-color: var(--color-gray-50);
+}
+
+html[dir="rtl"] nav .action {
+  text-align: right;
+}
+
+nav>div {
+  border-top: 1px solid var(--border-subtle);
+}
+
+nav .action>* {
+  vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════════
+   MAIN CONTENT AREA
+   ═══════════════════════════════════════════════════ */
+
+main {
+  min-height: 1em;
+  margin: 0 var(--space-6) var(--space-6) calc(16em + var(--space-6)) !important;
+  width: calc(100% - 16em - var(--space-6) * 2) !important;
+  transition: width var(--transition-normal), margin var(--transition-normal);
+}
+
+/* When sidebar is hidden or on share page, main takes full width */
+body.sidebar-hidden main,
+main.full-width {
+  width: calc(100% - var(--space-6) * 2) !important;
+  margin-left: var(--space-6) !important;
+  margin-right: var(--space-6) !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   BREADCRUMBS
+   ═══════════════════════════════════════════════════ */
+
+/* Moved to Breadcrumbs.vue scoped styles */
+
+/* ═══════════════════════════════════════════════════
+   PROGRESS BAR
+   ═══════════════════════════════════════════════════ */
+
+.progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 9999999999;
+}
+
+.progress div {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-light));
+  width: 0;
+  transition: width var(--transition-normal);
+}
+
+/* ═══════════════════════════════════════════════════
+   UTILITY CLASSES
+   ═══════════════════════════════════════════════════ */
+
+.break-word {
+  word-break: break-all;
+}
+
+i.spin {
+  animation: 1s spin linear infinite;
+}
+
+.files {
+  position: absolute;
+  bottom: 30px;
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════
+   THIRD-PARTY COMPONENT OVERRIDES
+   ═══════════════════════════════════════════════════ */
+
+.vue-number-input>input {
+  background: var(--surface-card) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.vue-number-input--small>input {
+  height: 1rem !important;
+  font-size: 1rem !important;
+}
+
+.vue-number-input :hover,
+.vue-number-input :focus {
+  border-color: var(--color-accent) !important;
+}
+
+.vue-number-input__button {
+  background: var(--surface-card) !important;
+}
+
+.vue-number-input__button--minus,
+.vue-number-input__button--plus {
+  border-color: var(--border-default) !important;
+}
+
+.vue-number-input__button::before,
+.vue-number-input__button::after {
+  background: var(--text-primary) !important;
+}
+
+.vfm-modal {
+  z-index: 9999999 !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   GLOBAL UTILITIES
+   ═══════════════════════════════════════════════════ */
+
+.centered-error-container {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 120px);
+  width: 100%;
+}
+
+.centered-error-container>* {
+  width: 100%;
+}

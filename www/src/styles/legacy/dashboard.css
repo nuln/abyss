@@ -1,0 +1,576 @@
+/**
+ * Dashboard Styles - Minimalist White Theme
+ */
+
+.dashboard {
+  margin: var(--space-4) 0;
+}
+
+.dashboard .row {
+  display: flex;
+  margin: 0 calc(var(--space-3) * -1);
+  flex-wrap: wrap;
+}
+
+/* Full-width row for admin pages */
+.dashboard .row.row--full {
+  max-width: 100%;
+}
+
+html[dir="rtl"] .dashboard .row {
+  margin-right: 16em;
+}
+
+.dashboard .row .column {
+  display: flex;
+  padding: 0 var(--space-3);
+  width: 50%;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Full-width column for admin pages */
+.dashboard .row .column.column--full {
+  width: 100%;
+}
+
+/* Security column with password/2FA cards */
+.dashboard .row .column.security-column {
+  gap: var(--space-3);
+}
+
+.dashboard .row .column .card {
+  flex-grow: 1;
+}
+
+/* Compact card for password/2FA stacked layout */
+.card.card--compact .card-content {
+  padding: var(--space-3);
+}
+
+.card.card--compact .card-content input {
+  margin-bottom: var(--space-2);
+}
+
+.card.card--compact .card-content input:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 1200px) {
+  .dashboard .row .column {
+    width: 100%;
+  }
+}
+
+a {
+  color: inherit;
+}
+
+.dashboard p label {
+  margin-bottom: var(--space-1);
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.dashboard p.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.dashboard p.checkbox label {
+  display: inline;
+  margin-bottom: 0;
+  text-transform: none;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+li code,
+p code {
+  background: var(--color-gray-100);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.small {
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+/* ═══════════════════════════════════════════════════
+   DASHBOARD NAVIGATION TABS
+   ═══════════════════════════════════════════════════ */
+
+.dashboard #nav {
+  display: flex;
+  padding-bottom: var(--space-4);
+  overflow: auto;
+}
+
+.dashboard #nav .wrapper {
+  display: flex;
+  flex-grow: 1;
+  border-bottom: 1px solid var(--border-default);
+}
+
+html[dir="rtl"] .dashboard #nav .wrapper {
+  margin-right: 16em;
+}
+
+.dashboard #nav ul {
+  list-style: none;
+  display: flex;
+  color: var(--text-secondary);
+  font-weight: 500;
+  padding: 0;
+  margin: 0 0 -1px 0;
+  font-size: var(--text-sm);
+  text-align: center;
+  justify-content: left;
+  gap: var(--space-1);
+}
+
+.dashboard #nav ul li {
+  position: relative;
+  padding: var(--space-3) var(--space-5);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  cursor: pointer;
+}
+
+.dashboard #nav ul li:hover {
+  background: var(--color-gray-50);
+  color: var(--text-primary);
+}
+
+.dashboard #nav ul li.active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: transparent;
+}
+
+.dashboard #nav i {
+  font-size: 1em;
+  vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════════
+   TABLE STYLES
+   ═══════════════════════════════════════════════════ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table tr {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+table tr:last-child {
+  border: 0;
+}
+
+table th {
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: left;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+table th,
+table td {
+  padding: var(--space-3) var(--space-4);
+}
+
+table td.small {
+  width: 1em;
+}
+
+table tr>*:first-child {
+  padding-left: var(--space-4);
+}
+
+html[dir="rtl"] table tr>* {
+  padding-left: unset;
+  padding-right: var(--space-4);
+  text-align: right;
+  direction: ltr;
+}
+
+table tr>*:last-child {
+  padding-right: var(--space-4);
+}
+
+/* ═══════════════════════════════════════════════════
+   CARD STYLES - Modern & Minimal
+   ═══════════════════════════════════════════════════ */
+
+.card {
+  position: relative;
+  margin: 0 0 var(--space-4) 0;
+  background: var(--surface-card);
+  color: var(--text-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-subtle);
+  overflow: auto;
+}
+
+.card.floating {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 28em;
+  width: 90%;
+  max-height: 95%;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+}
+
+.card>*>*:first-child {
+  margin-top: 0;
+}
+
+.card>*>*:last-child {
+  margin-bottom: 0;
+}
+
+.card .card-title {
+  padding: var(--space-5) var(--space-5) var(--space-3);
+  display: flex;
+}
+
+.card .card-title>*:first-child {
+  margin-right: auto;
+}
+
+html[dir="rtl"] .card .card-title>*:first-child {
+  margin-right: 0;
+  text-align: right;
+}
+
+.card>div {
+  padding: var(--space-4) var(--space-5);
+}
+
+.card>div:first-child {
+  padding-top: var(--space-5);
+}
+
+.card>div:last-child {
+  padding-bottom: var(--space-5);
+}
+
+.card .card-title * {
+  margin: 0;
+}
+
+.card .card-action {
+  text-align: right;
+}
+
+body.rtl .card .card-action {
+  text-align: left;
+}
+
+.card .card-content.full {
+  padding-bottom: 0;
+  overflow: auto;
+}
+
+.card h2 {
+  font-weight: 600;
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+}
+
+.card h3 {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  margin: var(--space-6) 0 var(--space-3);
+}
+
+.card-content table {
+  margin: 0 calc(var(--space-5) * -1);
+  width: calc(100% + var(--space-5) * 2);
+}
+
+.card code {
+  word-wrap: break-word;
+}
+
+.card#download {
+  max-width: 15em;
+}
+
+/* Share card specifics */
+.card#share input,
+.card#share select,
+.card#share input::-webkit-inner-spin-button,
+.card#share input::-webkit-outer-spin-button {
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+
+.card#share ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card#share ul li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-2) 0;
+}
+
+.card#share ul li a {
+  color: var(--color-accent);
+  cursor: pointer;
+  margin-right: auto;
+}
+
+.card#share ul li .action i {
+  font-size: 1em;
+}
+
+.card#share ul li input,
+.card#share ul li select {
+  padding: var(--space-1) var(--space-2);
+  margin-right: var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.card#share .action.copy-clipboard::after {
+  content: "Copied!";
+  position: absolute;
+  left: -25%;
+  width: 150%;
+  font-size: 0.6em;
+  text-align: center;
+  background: var(--color-accent);
+  color: var(--text-inverse);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  top: -2em;
+  transition: opacity var(--transition-fast);
+  opacity: 0;
+}
+
+.card#share .action.copy-clipboard.active::after {
+  opacity: 1;
+}
+
+.card#share .input-group {
+  display: flex;
+}
+
+.card#share .input-group * {
+  border: none;
+}
+
+.card#share .input-group input {
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════════════
+   OVERLAY
+   ═══════════════════════════════════════════════════ */
+
+.overlay {
+  background-color: var(--surface-overlay);
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  z-index: var(--z-modal-backdrop);
+  visibility: hidden;
+  opacity: 0;
+  animation: fadeIn 0.15s ease forwards;
+  backdrop-filter: blur(2px);
+}
+
+/* ═══════════════════════════════════════════════════
+   FILE LIST (Move/Copy Prompt)
+   ═══════════════════════════════════════════════════ */
+
+.file-list {
+  max-height: 50vh;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.file-list li {
+  width: 100%;
+  user-select: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: background-color var(--transition-fast);
+}
+
+.file-list li[aria-selected="true"] {
+  background: var(--color-accent) !important;
+  color: var(--text-inverse) !important;
+}
+
+.file-list li:hover {
+  background: var(--color-gray-50);
+  cursor: pointer;
+}
+
+.file-list li:before {
+  content: "folder";
+  color: var(--text-tertiary);
+  vertical-align: middle;
+  line-height: 1.4;
+  font-family: "Material Icons";
+  font-size: 1.5em;
+}
+
+.file-list li[aria-selected="true"]:before {
+  color: var(--text-inverse);
+}
+
+/* ═══════════════════════════════════════════════════
+   HELP MODAL
+   ═══════════════════════════════════════════════════ */
+
+.help {
+  max-width: 24em;
+}
+
+.help ul {
+  padding: 0;
+  margin: var(--space-4) 0;
+  list-style: none;
+}
+
+/* ═══════════════════════════════════════════════════
+   COLLAPSIBLE SECTIONS
+   ═══════════════════════════════════════════════════ */
+
+.collapsible {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.collapsible:last-of-type {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.collapsible>input {
+  display: none;
+}
+
+.collapsible>label {
+  padding: var(--space-4) 0;
+  cursor: pointer;
+  border-right: 0;
+  border-left: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.collapsible>label * {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.collapsible>label i {
+  transition: transform var(--transition-normal);
+  user-select: none;
+}
+
+.collapsible .collapse {
+  max-height: 0;
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.collapsible>input:checked~.collapse {
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-4);
+  max-height: 20em;
+}
+
+.collapsible>input:checked~label i {
+  transform: rotate(180deg);
+}
+
+.card .collapsible {
+  width: calc(100% + var(--space-5) * 2);
+  margin: 0 calc(var(--space-5) * -1);
+}
+
+.card .collapsible>label {
+  padding: var(--space-4) var(--space-5);
+}
+
+.card .collapsible .collapse {
+  padding: 0 var(--space-5);
+}
+
+.card .card-action.full {
+  padding-top: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.card .card-action.full .action {
+  flex: 1;
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  text-align: center;
+  transition: all var(--transition-fast);
+}
+
+.card .card-action.full .action:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.card .card-action.full .action i {
+  display: block;
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: 4em;
+}
+
+.card .card-action.full .action .title {
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+
+/* RTL Fix */
+html[dir="rtl"] .credits {
+  text-align: right;
+  direction: ltr;
+}

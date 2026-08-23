@@ -1,0 +1,103 @@
+:root {
+    --color-primary: hsl(220, 13%, 18%);
+    --color-accent: hsl(220, 85%, 55%);
+    --color-accent-light: hsl(220, 85%, 65%);
+    --color-success: hsl(152, 55%, 45%);
+    --color-warning: hsl(38, 92%, 55%);
+    --color-error: hsl(0, 72%, 55%);
+
+    --surface-page: hsl(220, 20%, 98%);
+    --surface-card: hsl(0, 0%, 100%);
+    --surface-elevated: hsl(0, 0%, 100%);
+
+    --text-primary: hsl(220, 14%, 16%);
+    --text-secondary: hsl(220, 8%, 46%);
+
+    --border-default: hsl(220, 13%, 91%);
+    --border-subtle: hsl(220, 14%, 96%);
+    --border-strong: hsl(220, 13%, 80%);
+
+    --text-inverse: hsl(0, 0%, 100%);
+    --color-primary-light: hsl(220, 13%, 25%);
+    --color-gray-50: hsl(220, 14%, 98%);
+
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-full: 9999px;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+    --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.06), 0 8px 16px rgba(0, 0, 0, 0.03);
+
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --leading-normal: 1.5;
+    --tracking-normal: 0;
+
+    --transition-fast: 150ms ease;
+    --transition-normal: 200ms ease;
+
+    /* Legacy compatibility aliases */
+    --blue: var(--color-accent);
+    --dark-blue: var(--color-accent-light);
+    --red: var(--color-error);
+    --dark-red: hsl(0, 72%, 45%);
+    --moon-grey: var(--border-subtle);
+    --icon-red: #da4453;
+    --icon-orange: #f47750;
+    --icon-yellow: #fdbc4b;
+    --icon-green: #2ecc71;
+    --icon-blue: var(--color-accent);
+    --icon-violet: #9b59b6;
+    --input-red: hsla(0, 72%, 55%, 0.15);
+    --input-green: hsla(152, 55%, 45%, 0.2);
+    --item-selected: #fff;
+    --action: var(--text-primary);
+    --background: var(--surface-page);
+    --surfacePrimary: var(--surface-card);
+    --surfaceSecondary: var(--border-subtle);
+    --divider: var(--border-subtle);
+    --iconPrimary: var(--color-accent);
+    --iconSecondary: #fff;
+    --iconTertiary: hsl(220, 11%, 82%);
+    --textPrimary: var(--text-secondary);
+    --textSecondary: var(--text-primary);
+    --hover: rgba(0, 0, 0, 0.04);
+    --borderPrimary: var(--border-subtle);
+    --borderSecondary: var(--border-default);
+    --dividerPrimary: rgba(255, 255, 255, 0.4);
+    --dividerSecondary: rgba(255, 255, 255, 0.9);
+}
+
+:root.dark {
+    --surface-page: hsl(220, 16%, 8%);
+    --surface-card: hsl(220, 14%, 12%);
+    --surface-elevated: hsl(220, 13%, 16%);
+    --text-primary: hsl(220, 10%, 92%);
+    --text-secondary: hsl(220, 8%, 60%);
+    --border-default: hsl(220, 10%, 20%);
+    --border-subtle: hsl(220, 10%, 14%);
+    --input-red: hsl(0, 50%, 25%);
+    --input-green: hsl(152, 50%, 25%);
+    --surfaceSecondary: var(--surface-elevated);
+    --iconPrimary: #fff;
+    --iconSecondary: #fff;
+    --iconTertiary: hsl(220, 9%, 64%);
+    --hover: rgba(255, 255, 255, 0.06);
+    --dividerPrimary: rgba(30, 30, 30, 0.4);
+    --dividerSecondary: rgba(30, 30, 30, 0.6);
+}
