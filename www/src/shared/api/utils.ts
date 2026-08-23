@@ -1,10 +1,8 @@
 import { baseURL, origin } from "@/shared/utils/constants";
 import { encodePath } from "@/shared/utils/url";
 
-type TokenGetter = () => string;
 type UnauthorizedHandler = () => void;
 
-let tokenGetter: TokenGetter = () => "";
 let unauthorizedHandler: UnauthorizedHandler | null = null;
 
 export class StatusError extends Error {
@@ -26,7 +24,7 @@ export async function fetchURL(
   opts = opts || {};
   opts.headers = opts.headers || {};
 
-  const { headers, ...rest } = opts;
+  const { headers, ...rest } = opts as { headers?: HeadersInit; [k: string]: any };
   let res;
   let fullURL = `${baseURL}${url}`;
   if (!baseURL.startsWith("http") && !url.startsWith("http")) {
@@ -39,11 +37,10 @@ export async function fetchURL(
   }
 
   try {
+    // Authentication rides the HttpOnly cookie automatically on same-origin
+    // requests; no Authorization header is needed anymore.
     res = await fetch(fullURL, {
-      headers: {
-        "X-Auth": auth ? tokenGetter() : "",
-        ...headers,
-      },
+      headers,
       ...rest,
     });
   } catch (e) {
@@ -100,17 +97,10 @@ async function fetchJSONImpl<T>(url: string, opts?: any): Promise<T> {
 }
 
 export const fetchJSON = Object.assign(fetchJSONImpl, {
-  setTokenGetter(getter: TokenGetter) {
-    tokenGetter = getter;
-  },
   setUnauthorizedHandler(handler: UnauthorizedHandler) {
     unauthorizedHandler = handler;
   },
 });
-
-export function getAuthToken(): string {
-  return tokenGetter();
-}
 
 export function removePrefix(url: string): string {
   // Only remove prefix if it starts with /files/ or similar "view" prefixes.

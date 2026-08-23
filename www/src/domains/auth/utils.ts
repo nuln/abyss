@@ -1,4 +1,11 @@
-// import router from "@/app/router";
+// Authentication utilities — cookie-based session mode.
+//
+// Since phase 2 the server issues HttpOnly cookies (abyss_at / abyss_rt) on
+// login, MFA verification and refresh. The SPA never touches the tokens:
+// it only tracks the user object and schedules a silent refresh shortly
+// before the access token expires, using the metadata returned by the
+// login/refresh endpoints.
+
 import { useAuthStore } from "@/domains/auth";
 import {
     getCurrentUser,
@@ -9,219 +16,180 @@ import {
 } from "@/domains/auth/api";
 import type { JwtPayload } from "jwt-decode";
 import { jwtDecode } from "jwt-decode";
-import { noAuth, logoutPage, baseURL } from "@/shared/utils/constants";
-import { setSafeTimeout } from "@/shared/api/utils";
+import { baseURL, noAuth, logoutPage } from "@/shared/utils/constants";
 
-const ACCESS_TOKEN_KEY = "accessToken";
-const REFRESH_TOKEN_KEY = "refreshToken";
+const LEGACY_KEYS = ["jwt", "accessToken", "refreshToken"];
 
-interface AccessTokenClaims extends JwtPayload {
-    uid?: number;
-    email?: string;
-    ctype?: string;
-    user?: IUser;
-}
-
-const cookieSecure = window.location.protocol === "https:" ? "; Secure" : "";
-
-export function storeAccessToken(token: string) {
-    document.cookie = `auth=${token}; Path=/; SameSite=Strict;${cookieSecure}`;
-    localStorage.setItem(ACCESS_TOKEN_KEY, token);
-
-    const authStore = useAuthStore();
-    authStore.jwt = token;
-
-    try {
-        const data = jwtDecode<JwtPayload>(token);
-        if (data.exp) {
-            if (authStore.logoutTimer) {
-                clearTimeout(authStore.logoutTimer);
-            }
-            const expiresAt = new Date(data.exp * 1000);
-            const timeout = expiresAt.getTime() - Date.now();
-            const refreshTimeout = timeout - 60000;
-            if (refreshTimeout > 0) {
-                authStore.setLogoutTimer(
-                    setSafeTimeout(() => {
-                        void refreshAccessToken();
-                    }, refreshTimeout),
-                );
-            }
-        }
-    } catch {
-        // Ignore decode failures here.
+function clearLegacyStorage() {
+    // Tokens used to live in localStorage; scrub any leftovers from the
+    // pre-cookie era so stale credentials can never be resurrected.
+    for (const key of LEGACY_KEYS) {
+        localStorage.removeItem(key);
     }
-}
-
-export function storeRefreshToken(token: string) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token);
+    // The legacy JS-managed auth cookie is superseded by the HttpOnly one.
+    document.cookie = "auth=; Max-Age=0; Path=/; SameSite=Strict;";
 }
 
 export function getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
+    // Kept for API compatibility; the HttpOnly cookie is not readable here.
+    return null;
 }
 
-export function getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
-}
-
-function clearTokens() {
-    document.cookie = `auth=; Max-Age=0; Path=/; SameSite=Strict;${cookieSecure}`;
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem("jwt");
-}
-
-let refreshInFlight: Promise<boolean> | null = null;
-
-// Single-flight wrapper: concurrent callers (multiple tabs/timers hitting
-// the expiry window together) share one refresh request.
-export function refreshAccessToken(): Promise<boolean> {
-    if (!refreshInFlight) {
-        refreshInFlight = doRefreshAccessToken().finally(() => {
-            refreshInFlight = null;
-        });
-    }
-    return refreshInFlight;
-}
-
-async function doRefreshAccessToken(): Promise<boolean> {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-        return false;
-    }
-
+async function fetchCurrentUser(): Promise<IUser | null> {
     try {
-        const data = await refresh(refreshToken);
+        return await getCurrentUser();
+    } catch {
+        return null;
+    }
+}
+
+/** Silent refresh: the refresh token rides in its HttpOnly cookie. */
+export async function refreshAccessToken(): Promise<boolean> {
+    try {
+        const data = await refresh("");
         if (data && data.accessToken) {
-            storeAccessToken(data.accessToken);
+            scheduleSilentRefresh(data.accessToken);
             return true;
         }
-        clearTokens();
         return false;
     } catch {
-        clearTokens();
         return false;
     }
 }
 
-export function parseToken(token: string) {
-    const data = jwtDecode<AccessTokenClaims>(token);
+let silentRefreshTimer: number | null = null;
 
-    localStorage.setItem("jwt", token);
-    // storeAccessToken writes the cookie/store and schedules the silent
-    // refresh; do NOT arm a hard logout at expiry — that would defeat the
-    // dual-token design and kick users out mid-session.
-    storeAccessToken(token);
-
-    if (data.user) {
-        useAuthStore().setUser(data.user as IUser);
-    } else if (data.uid) {
-        void getCurrentUser()
-            .then((user) => {
-                useAuthStore().setUser(user);
-            })
-            .catch(() => {
-                // Ignore profile hydration failures.
-            });
+function clearSilentRefresh() {
+    if (silentRefreshTimer !== null) {
+        clearTimeout(silentRefreshTimer);
+        silentRefreshTimer = null;
     }
 }
 
+function setSilentRefreshTimer(timer: number) {
+    clearSilentRefresh();
+    silentRefreshTimer = timer;
+}
+
+export function setLogoutTimer(_timer: number) {
+    // Deprecated no-op kept for store compatibility; the silent-refresh
+    // timer replaces the old hard-logout-at-expiry behaviour.
+}
+
+// Schedule a refresh ~60s before the access token in `token` expires.
+function scheduleSilentRefresh(token?: string) {
+    if (!token) return;
+    try {
+        const data = jwtDecode<JwtPayload>(token);
+        if (!data.exp) return;
+        const delay = data.exp * 1000 - Date.now() - 60_000;
+        if (delay <= 0) return;
+        setSilentRefreshTimer(
+            window.setTimeout(() => {
+                void refreshAccessToken();
+            }, delay),
+        );
+    } catch {
+        // Ignore decode failures.
+    }
+}
+
+/**
+ * Restore a session on page load. Order of attempts:
+ *  1. valid access cookie  -> GET /api/me
+ *  2. refresh cookie       -> POST /api/auth/refresh, then /api/me
+ *  3. legacy localStorage tokens from the pre-cookie era
+ */
 export async function validateLogin() {
     const authStore = useAuthStore();
 
-    const accessToken = getAccessToken();
+    const user = await fetchCurrentUser();
+    if (user) {
+        clearLegacyStorage();
+        authStore.setUser(user);
+        // Re-arm the silent-refresh chain: the exp is only readable from
+        // the token itself, which the SPA can no longer inspect, so do one
+        // lightweight refresh now — it schedules all subsequent ones.
+        await refreshAccessToken();
+        return;
+    }
+
+    if (await refreshAccessToken()) {
+        const refreshed = await fetchCurrentUser();
+        if (refreshed) {
+            clearLegacyStorage();
+            authStore.setUser(refreshed);
+            return;
+        }
+    }
+
+    // Legacy path: tokens left over in localStorage from an older build.
+    const accessToken = localStorage.getItem("accessToken");
     if (accessToken) {
         try {
-            const data = jwtDecode<AccessTokenClaims>(accessToken);
+            const data = jwtDecode<JwtPayload>(accessToken);
             if (data.exp && data.exp * 1000 > Date.now()) {
-                storeAccessToken(accessToken);
-
-                if (!authStore.user) {
-                    if (data.user) {
-                        authStore.setUser(data.user);
-                    } else if (data.uid) {
-                        try {
-                            const user = await getCurrentUser();
-                            authStore.setUser(user);
-                        } catch {
-                            // Ignore profile fetch failures.
-                        }
-                    }
+                // Still works against the X-Auth channel until the user
+                // logs in again and migrates to cookies.
+                document.cookie = `auth=${accessToken}; Path=/; SameSite=Strict;`;
+                const legacyUser = await fetchCurrentUser();
+                if (legacyUser) {
+                    authStore.setUser(legacyUser);
+                    scheduleSilentRefresh(accessToken);
+                    return;
                 }
-                return;
-            }
-
-            if (await refreshAccessToken()) {
-                const newToken = getAccessToken();
-                if (newToken) {
-                    const newData = jwtDecode<AccessTokenClaims>(newToken);
-                    if (!authStore.user && newData.uid) {
-                        try {
-                            const user = await getCurrentUser();
-                            authStore.setUser(user);
-                        } catch {
-                            // Ignore profile fetch failures.
-                        }
-                    }
-                }
-                return;
             }
         } catch {
-            // Continue fallback checks.
+            // Fall through to failure below.
         }
     }
 
-    const jwt = localStorage.getItem("jwt");
-    if (jwt) {
-        try {
-            parseToken(jwt);
-            if (!authStore.user) {
-                const data = jwtDecode<AccessTokenClaims>(jwt);
-                if (data.uid) {
-                    try {
-                        const user = await getCurrentUser();
-                        authStore.setUser(user);
-                    } catch {
-                        // Ignore profile fetch failures.
-                    }
-                }
-            }
-            return;
-        } catch (error) {
-            localStorage.removeItem("jwt");
-            throw error;
-        }
-    }
-
+    clearLegacyStorage();
     throw new Error("No valid token");
 }
 
-export async function login(email: string, password: string, recaptcha: string): Promise<{ otp: boolean; token: string }> {
-    try {
+// ── Plugin SDK compatibility shims ──────────────────────────────────────────
+// Tokens are managed by HttpOnly cookies server-side. These keep the
+// plugin auth API signature stable: parseToken only needs to hydrate the
+// user profile (the cookie was already set by the issuing endpoint), and
+// storing a refresh token is a no-op.
+
+export function parseToken(token: string) {
+    void token;
+    void getCurrentUser()
+        .then((user) => {
+            useAuthStore().setUser(user);
+        })
+        .catch(() => {
+            // Ignore profile hydration failures.
+        });
+}
+
+export function storeRefreshToken(_token: string) {
+    // no-op: the refresh token lives in an HttpOnly cookie.
+}
+
+export async function login(email: string, password: string, recaptcha: string): Promise<{ otp: boolean; token: string }> {    try {
         const payload = await loginAPI({ email, password, recaptcha });
 
-        // Handle both legacy `otp` field and new MFA flow (`needMFA` + `mfaToken`)
+        // Handle both the legacy `otp` field and the MFA flow (`needMFA` +
+        // `mfaToken`). The intermediate MFA token is short-lived and stays
+        // in memory only.
         const needsMFA = payload.otp || (payload as any).needMFA;
-        const mfaToken = (payload as any).mfaToken || payload.token || "";
         if (needsMFA) {
+            const mfaToken = (payload as any).mfaToken || payload.token || "";
             return { otp: true, token: mfaToken };
         }
 
-        storeAccessToken(payload.accessToken);
-        if (payload.refreshToken) {
-            storeRefreshToken(payload.refreshToken);
-        }
+        // Cookies are already set by the server. Hydrate the user profile.
+        clearLegacyStorage();
         if (payload.user) {
-            useAuthStore().setUser(payload.user as any);
+            useAuthStore().setUser(payload.user as IUser);
         } else {
-            try {
-                const user = await getCurrentUser();
-                useAuthStore().setUser(user);
-            } catch {
-                // Ignore profile hydration failures.
-            }
+            const user = await getCurrentUser();
+            useAuthStore().setUser(user);
         }
+        scheduleSilentRefresh(payload.accessToken);
 
         return { otp: false, token: payload.accessToken };
     } catch (e: any) {
@@ -245,12 +213,14 @@ export async function signup(email: string, username: string, password: string) 
 }
 
 export async function logout(reason?: string) {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-        await logoutAPI(refreshToken);
+    // Server clears the HttpOnly cookies and revokes the refresh session.
+    try {
+        await logoutAPI("");
+    } catch {
+        // Ignore logout API failure and continue local cleanup.
     }
-
-    clearTokens();
+    clearLegacyStorage();
+    clearSilentRefresh();
 
     const authStore = useAuthStore();
     authStore.clearUser();

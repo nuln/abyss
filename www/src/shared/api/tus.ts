@@ -1,6 +1,6 @@
 import * as tus from "tus-js-client";
 import { baseURL, tusEndpoint, tusSettings, origin } from "@/shared/utils/constants";
-import { getAuthToken, removePrefix } from "@/shared/api/utils";
+import { removePrefix } from "@/shared/api/utils";
 
 const RETRY_BASE_DELAY = 1000;
 const RETRY_MAX_DELAY = 20000;
@@ -32,9 +32,6 @@ export async function upload(
       retryDelays: computeRetryDelays(tusSettings),
       parallelUploads: 1,
       storeFingerprintForResuming: false,
-      headers: {
-        "X-Auth": getAuthToken(),
-      },
       onShouldRetry: function (err) {
         const status = err.originalResponse
           ? err.originalResponse.getStatus()

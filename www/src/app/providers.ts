@@ -5,7 +5,6 @@ import { createVfm } from "vue-final-modal";
 import Toast from "vue-toastification";
 import type { PluginOptions } from "vue-toastification";
 import createPinia from "@/app/stores";
-import { useAuthStore } from "@/domains/auth";
 import { logout } from "@/domains/auth/utils";
 import { fetchJSON } from "@/shared/api/utils";
 import i18n from "@/shared/i18n";
@@ -29,7 +28,6 @@ export function registerProviders(app: ReturnType<typeof Vue.createApp>, router:
   app.use(pinia);
   app.use(router);
 
-  fetchJSON.setTokenGetter(() => useAuthStore().jwt);
   fetchJSON.setUnauthorizedHandler(() => {
     void logout();
   });
