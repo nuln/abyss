@@ -4,7 +4,7 @@ The frontend of Abyss, built with Vue 3, Vite, and TypeScript.
 
 ## Project Setup
 
-This project is managed as a submodule within the Abyss core repository.
+This project lives in the `www/` directory of the Abyss monorepo.
 
 ### Prerequisites
 

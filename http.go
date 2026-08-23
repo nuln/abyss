@@ -19,7 +19,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/nuln/abyss-core/www"
+	"github.com/nuln/abyss/www"
 )
 
 // ── Context keys ──────────────────────────────────────────────────────────────

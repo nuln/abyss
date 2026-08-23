@@ -119,7 +119,7 @@ func LoadConfig(args []string) (Config, error) {
 }
 
 func parseConfigFlags(args []string) (configFlagValues, map[string]bool, error) {
-	fs := flag.NewFlagSet("abyss-core", flag.ContinueOnError)
+	fs := flag.NewFlagSet("abyss", flag.ContinueOnError)
 	configPath := fs.String("config", "config.toml", "path to config.toml")
 	demo := fs.Bool("demo", false, "enable demo mode")
 	demoEmail := fs.String("demo-email", "", "demo account email (used with -demo)")

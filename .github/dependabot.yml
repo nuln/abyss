@@ -19,3 +19,15 @@ updates:
       go-dependencies:
         patterns:
           - "*"
+
+  # Maintain dependencies for npm (pnpm, in www/)
+  - package-ecosystem: "npm"
+    directory: "/www"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+    groups:
+      npm-dependencies:
+        patterns:
+          - "*"

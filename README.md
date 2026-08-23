@@ -8,7 +8,7 @@ Abyss is designed with a lightweight core that handles authentication, storage o
 
 - **Backend**: Go (Golang)
 - **Database**: BoltDB (Embedded, zero-config)
-- **Frontend**: Vue 3 + Vite (Managed as a submodule in `www/`)
+- **Frontend**: Vue 3 + Vite (lives in `www/`)
 - **Communication**: REST API + Server-Sent Events (SSE)
 
 ## Quick Start
@@ -25,6 +25,7 @@ Abyss is designed with a lightweight core that handles authentication, storage o
    ```bash
    make setup
    ```
+   This installs Go dependencies and frontend dependencies (via pnpm).
 2. **Build Binary**:
    ```bash
    make build

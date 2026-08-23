@@ -4,7 +4,7 @@
 //
 //	package main
 //
-//	import "github.com/nuln/abyss-core"
+//	import "github.com/nuln/abyss"
 //
 //	func main() {
 //	    abyss.Main()
@@ -30,7 +30,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 
-	"github.com/nuln/abyss-core/www"
+	"github.com/nuln/abyss/www"
 )
 
 // App is the running application.

@@ -215,7 +215,7 @@ func (s *authService) signJWT(u *User) (string, error) {
 		"uid":   u.ID,
 		"role":  string(u.Role),
 		"admin": u.Role == RoleAdmin,
-		"iss":   "abyss-core",
+		"iss":   "abyss",
 		"sub":   fmt.Sprintf("%d", u.ID),
 		"iat":   now.Unix(),
 		"exp":   now.Add(s.accessTTL).Unix(),

@@ -1,9 +1,9 @@
-module github.com/nuln/abyss-core/example
+module github.com/nuln/abyss/example
 
 go 1.26
 
 require (
-	github.com/nuln/abyss-core v0.0.0
+	github.com/nuln/abyss v0.0.0
 	github.com/nuln/abyss-pro/oidc v0.0.0-00010101000000-000000000000
 	github.com/nuln/abyss-plugins/totp v0.0.0-00010101000000-000000000000
 	github.com/nuln/abyss-plugins/trash v0.0.0-00010101000000-000000000000
@@ -34,7 +34,7 @@ require (
 	golang.org/x/text v0.37.0 // indirect
 )
 
-replace github.com/nuln/abyss-core => ../
+replace github.com/nuln/abyss => ../
 
 replace github.com/nuln/abyss-pro/oidc => ../pro/oidc
 

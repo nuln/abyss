@@ -1,5 +1,9 @@
 # Abyss 仓库拆分与发布方案（plugins / pro / www）
 
+> **状态更新（2026-08）**：`www` 已通过 subtree merge 并回主仓库（现更名为 `nuln/abyss`），
+> 不再是独立仓库或 submodule。本文档中与 `www` submodule 相关的内容仅作历史参考；
+> `plugins` 与 `pro` 的拆分策略仍然有效。
+
 ## 目标
 
 1. `plugins` 与 `pro` 分别作为独立私有仓库。

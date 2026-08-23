@@ -1,4 +1,4 @@
-module github.com/nuln/abyss-core
+module github.com/nuln/abyss
 
 go 1.26
 
