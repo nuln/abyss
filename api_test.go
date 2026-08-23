@@ -1533,7 +1533,7 @@ func TestAuthMiddleware_AcceptsHttpOnlyAccessCookie(t *testing.T) {
 	at, _ := extractAuthCookies(t, rr)
 	require.NotNil(t, at)
 
-	req := httptest.NewRequest(http.MethodGet, "/api/me", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/me", http.NoBody)
 	req.AddCookie(at)
 	rec := httptest.NewRecorder()
 	app.Router.ServeHTTP(rec, req)
