@@ -85,10 +85,10 @@ func WriteJSON(w http.ResponseWriter, status int, v any) {
 // WriteErr maps an application error to HTTP status and writes JSON payload.
 func WriteErr(w http.ResponseWriter, err error) {
 	var appErr *Error
-	msg := err.Error()
+	msg := ""
 	code := http.StatusInternalServerError
 
-	if errors.As(err, &appErr) {
+	if err != nil && errors.As(err, &appErr) {
 		msg = appErr.Message
 		switch appErr.Code {
 		case ErrNotFound.Code:
@@ -241,7 +241,9 @@ func (a *App) handleRegister(w http.ResponseWriter, r *http.Request) {
 		u.Preferences.Scope = settings.Defaults.Scope
 		u.Preferences.SingleClick = settings.Defaults.SingleClick
 		u.Preferences.Sorting = settings.Defaults.Sorting
-		_ = a.userSvc.UpdateUser(r.Context(), u)
+		if err := a.userSvc.UpdateUser(r.Context(), u); err != nil {
+			slog.Warn("apply default preferences after register", "user", u.ID, "error", err)
+		}
 	}
 	u.Sanitize()
 	WriteJSON(w, http.StatusCreated, u)
@@ -353,7 +355,7 @@ func (a *App) handleLoginMFA(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("mfa.request", "method", req.Method, "token_len", len(req.MFAToken), "data", req.Data)
+	slog.Debug("mfa.request", "method", req.Method, "token_len", len(req.MFAToken))
 
 	// 1. Verify MFA Token and bound method
 	userID, boundMethod, err := a.users.VerifyMFAToken(req.MFAToken)
@@ -1030,6 +1032,10 @@ func (a *App) handleTaskEvents(w http.ResponseWriter, r *http.Request) {
 			data, _ := json.Marshal(t)
 			_, _ = fmt.Fprintf(w, "data: %s\n\n", string(data))
 			flusher.Flush()
+		case <-time.After(25 * time.Second):
+			// Heartbeat keeps intermediaries from reaping idle SSE streams.
+			_, _ = fmt.Fprint(w, ": ping\n\n")
+			flusher.Flush()
 		case <-r.Context().Done():
 			return
 		}
@@ -1132,9 +1138,13 @@ func (a *App) handleIndex(w http.ResponseWriter, r *http.Request) {
 		"ResizePreview":         true,
 		"HideLoginButton":       settings.HideLoginButton,
 		"Demo":                  a.Config.Demo,
-		"DemoEmail":             a.Config.DemoEmail,
-		"DemoPassword":          a.Config.DemoPassword,
 		"TusSettings":           settings.Tus,
+	}
+	// Only expose demo credentials when demo mode is actually enabled;
+	// otherwise they would leak into the anonymously served index.html.
+	if a.Config.Demo {
+		abyssMap["DemoEmail"] = a.Config.DemoEmail
+		abyssMap["DemoPassword"] = a.Config.DemoPassword
 	}
 	abyssJSON, _ := json.Marshal(abyssMap)
 

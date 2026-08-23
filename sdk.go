@@ -316,12 +316,14 @@ func NewMemoryEventBus() *MemoryEventBus {
 }
 
 func (b *MemoryEventBus) Publish(topic string, data interface{}) {
+	// Hold the read lock while sending so Close cannot close(b.jobs)
+	// concurrently with a send (which would panic the process).
+	b.mu.RLock()
+	defer b.mu.RUnlock()
 	if b.closed.Load() {
 		return
 	}
-	b.mu.RLock()
 	entries, ok := b.subscribers[topic]
-	b.mu.RUnlock()
 	if !ok {
 		return
 	}
@@ -351,8 +353,12 @@ func (b *MemoryEventBus) worker() {
 
 func (b *MemoryEventBus) Close() {
 	b.closeOnce.Do(func() {
-		b.closed.Store(true)
-		close(b.jobs)
+		// Take the write lock so a concurrent Publish cannot be mid-send.
+		b.mu.Lock()
+		if !b.closed.Swap(true) {
+			close(b.jobs)
+		}
+		b.mu.Unlock()
 		b.wg.Wait()
 	})
 }
@@ -394,9 +400,9 @@ func mountPluginHTTP(r *mux.Router, authMW func(http.Handler) http.Handler) {
 		slug := p.Info().SlugName
 		scoped := api.PathPrefix("/" + slug).Subrouter()
 		p.RegisterRoutes(
-			routerGroupAdapter{scoped, nil},
-			routerGroupAdapter{global, nil},
-			routerGroupAdapter{users, nil},
+			routerGroupAdapter{r: scoped},
+			routerGroupAdapter{r: global},
+			routerGroupAdapter{r: users},
 			authMW,
 		)
 		return nil
@@ -651,19 +657,33 @@ func ExportUserData(userID uint64) map[string]interface{} {
 
 // ── routerGroupAdapter ────────────────────────────────────────────────────────
 
+// routerGroupAdapter adapts mux routers to the plugin RouterGroup contract.
+// Unlike gorilla's Subrouter.Use (which affects the whole subtree), the
+// middleware chain is group-local: Use only wraps routes registered through
+// this adapter or one of its Group() children.
 type routerGroupAdapter struct {
 	r     *mux.Router
 	route *mux.Route
+	mws   []func(http.Handler) http.Handler
+}
+
+func (a routerGroupAdapter) withMiddlewares(handler http.Handler) http.Handler {
+	for i := len(a.mws) - 1; i >= 0; i-- {
+		handler = a.mws[i](handler)
+	}
+	return handler
 }
 
 func (a routerGroupAdapter) Handle(pattern string, handler http.Handler) RouterGroup {
-	route := a.r.Handle(pattern, handler)
-	return routerGroupAdapter{a.r, route}
+	route := a.r.Handle(pattern, a.withMiddlewares(handler))
+	return routerGroupAdapter{a.r, route, a.mws}
 }
 
 func (a routerGroupAdapter) HandleFunc(pattern string, handler http.HandlerFunc) RouterGroup {
-	route := a.r.HandleFunc(pattern, handler)
-	return routerGroupAdapter{a.r, route}
+	route := a.r.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		a.withMiddlewares(handler).ServeHTTP(w, r)
+	})
+	return routerGroupAdapter{a.r, route, a.mws}
 }
 
 func (a routerGroupAdapter) Methods(methods ...string) RouterGroup {
@@ -674,18 +694,14 @@ func (a routerGroupAdapter) Methods(methods ...string) RouterGroup {
 }
 
 func (a routerGroupAdapter) Group(prefix string) RouterGroup {
-	return routerGroupAdapter{a.r.PathPrefix(prefix).Subrouter(), nil}
+	return routerGroupAdapter{a.r.PathPrefix(prefix).Subrouter(), nil, a.mws}
 }
 
 func (a routerGroupAdapter) Use(mw ...func(http.Handler) http.Handler) RouterGroup {
-	a.r.Use(mux.MiddlewareFunc(func(next http.Handler) http.Handler {
-		h := next
-		for i := len(mw) - 1; i >= 0; i-- {
-			h = mw[i](h)
-		}
-		return h
-	}))
-	return a
+	chain := make([]func(http.Handler) http.Handler, 0, len(a.mws)+len(mw))
+	chain = append(chain, a.mws...)
+	chain = append(chain, mw...)
+	return routerGroupAdapter{a.r, a.route, chain}
 }
 
 // ── Manager ───────────────────────────────────────────────────────────────────

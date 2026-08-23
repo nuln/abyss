@@ -292,6 +292,10 @@ func newAuthService(users UserStore, sessions SessionStore, jwtSecret []byte, ac
 	}
 }
 
+// dummyPasswordHash is compared against when the requested user does not
+// exist, so that login timing is indistinguishable from a failed password.
+var dummyPasswordHash, _ = hashPassword("dummy-password-for-timing")
+
 func (s *authService) Login(ctx context.Context, email, password, userAgent, ip string) (*AuthResult, error) {
 	u, err := s.users.GetByEmail(ctx, email)
 	if err != nil {
@@ -300,6 +304,8 @@ func (s *authService) Login(ctx context.Context, email, password, userAgent, ip 
 			u, err = s.users.GetByUsername(ctx, email)
 		}
 		if err != nil {
+			// Burn comparable time to prevent user enumeration via latency.
+			comparePassword(dummyPasswordHash, password)
 			return nil, ErrUnauthorized
 		}
 	}
@@ -311,9 +317,19 @@ func (s *authService) Login(ctx context.Context, email, password, userAgent, ip 
 }
 
 func (s *authService) issueAuthResult(ctx context.Context, u *User, userAgent string) (*AuthResult, error) {
+	return s.issueAuthResultWithTTL(ctx, u, userAgent, 0)
+}
+
+// issueAuthResultWithTTL signs an access token with the service default TTL,
+// or with ttl when it is positive (used by the plugin IssueToken API).
+func (s *authService) issueAuthResultWithTTL(ctx context.Context, u *User, userAgent string, ttl time.Duration) (*AuthResult, error) {
 	now := time.Now().UTC()
 
-	accessToken, err := s.signJWT(u)
+	accessTokenTTL := s.accessTTL
+	if ttl > 0 {
+		accessTokenTTL = ttl
+	}
+	accessToken, err := s.signJWTTTL(u, accessTokenTTL)
 	if err != nil {
 		return nil, WrapError(ErrInternal, err, "sign jwt")
 	}
@@ -338,7 +354,7 @@ func (s *authService) issueAuthResult(ctx context.Context, u *User, userAgent st
 		AccessToken:  accessToken,
 		Token:        accessToken,
 		RefreshToken: refreshRaw,
-		ExpiresAt:    now.Add(s.accessTTL),
+		ExpiresAt:    now.Add(accessTokenTTL),
 	}, nil
 }
 
@@ -349,6 +365,9 @@ func (s *authService) Refresh(ctx context.Context, rawRefreshToken string) (*Aut
 		return nil, ErrUnauthorized
 	}
 	if time.Now().After(rt.ExpiresAt) {
+		// Lazily remove expired tokens so the session store does not grow
+		// without bound on long-lived deployments.
+		_ = s.sessions.Revoke(ctx, rt.ID)
 		return nil, ErrUnauthorized
 	}
 	u, err := s.users.GetByID(ctx, rt.UserID)
@@ -408,6 +427,11 @@ func (s *authService) VerifyJWT(tokenStr string) (*AccessTokenClaims, error) {
 	if !ok {
 		return nil, ErrUnauthorized
 	}
+	// Reject tokens that are not access tokens (e.g. MFA intermediate
+	// tokens signed with the same secret must never authenticate).
+	if typ, _ := mapClaims["typ"].(string); typ != "access" {
+		return nil, ErrUnauthorized
+	}
 	uid, _ := mapClaims["uid"].(float64)
 	role, _ := mapClaims["role"].(string)
 	isAdmin, _ := mapClaims["admin"].(bool)
@@ -419,6 +443,10 @@ func (s *authService) VerifyJWT(tokenStr string) (*AccessTokenClaims, error) {
 }
 
 func (s *authService) signJWT(u *User) (string, error) {
+	return s.signJWTTTL(u, s.accessTTL)
+}
+
+func (s *authService) signJWTTTL(u *User, ttl time.Duration) (string, error) {
 	now := time.Now().UTC()
 	claims := jwt.MapClaims{
 		"uid":   u.ID,
@@ -427,7 +455,8 @@ func (s *authService) signJWT(u *User) (string, error) {
 		"iss":   "abyss",
 		"sub":   fmt.Sprintf("%d", u.ID),
 		"iat":   now.Unix(),
-		"exp":   now.Add(s.accessTTL).Unix(),
+		"exp":   now.Add(ttl).Unix(),
+		"typ":   "access",
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return t.SignedString(s.jwtSecret)

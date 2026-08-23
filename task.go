@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -144,42 +145,58 @@ func (s *taskService) Submit(ctx context.Context, name string, userID uint64, ru
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	// Detach the task from the caller's lifetime: HTTP handlers pass
+	// r.Context(), which is cancelled as soon as the response is written,
+	// while tasks must keep running. Values (e.g. the task user id) are kept.
+	ctx = context.WithoutCancel(ctx)
 	ctx = withTaskUserID(ctx, userID)
 	runCtx, cancel := context.WithCancel(ctx)
 	s.sch.Track(id, cancel)
+
+	update := func(mutate func(*TaskInfo)) {
+		mutate(t)
+		t.UpdatedAt = time.Now().UTC()
+		if err := s.store.Save(context.Background(), t); err != nil {
+			slog.Error("persist task state", "task", id, "error", err)
+		}
+		s.broadcast(t)
+	}
+
 	go func() {
 		defer s.sch.Untrack(id)
-		t.Status = TaskRunning
-		t.UpdatedAt = time.Now().UTC()
-		_ = s.store.Save(runCtx, t)
-		s.broadcast(t)
+		update(func(t *TaskInfo) { t.Status = TaskRunning })
 		err := run(runCtx)
-		t.UpdatedAt = time.Now().UTC()
-		switch {
-		case errors.Is(err, context.Canceled):
-			t.Status = TaskCanceled
-			t.Message = err.Error()
-		case err != nil:
-			t.Status = TaskFailed
-			t.Message = err.Error()
-		default:
-			t.Status = TaskSucceeded
-			t.Progress = 100
-		}
-		_ = s.store.Save(context.Background(), t)
-		s.broadcast(t)
+		update(func(t *TaskInfo) {
+			switch {
+			case errors.Is(err, context.Canceled):
+				t.Status = TaskCanceled
+				t.Message = err.Error()
+			case err != nil:
+				t.Status = TaskFailed
+				t.Message = err.Error()
+			default:
+				t.Status = TaskSucceeded
+				t.Progress = 100
+			}
+		})
 	}()
 	return id, nil
 }
 
+// broadcast delivers a snapshot of the task to matching subscribers.
+// A copy is sent so subscribers can never observe later in-place mutations
+// of the live TaskInfo (which would be a data race).
 func (s *taskService) broadcast(t *TaskInfo) {
+	snapshot := *t
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for ch, uid := range s.subscribers {
-		if uid == 0 || uid == t.UserID {
+		if uid == 0 || uid == snapshot.UserID {
 			select {
-			case ch <- t:
+			case ch <- &snapshot:
 			default:
+				// Subscriber buffer full: drop instead of blocking the task.
+				slog.Debug("task event dropped for slow subscriber", "task", snapshot.ID)
 			}
 		}
 	}

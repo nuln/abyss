@@ -110,28 +110,6 @@ type boltSessionStore struct {
 	db *boltDB
 }
 
-func (r *boltSessionStore) GetByID(ctx context.Context, id string) (*RefreshToken, error) {
-	_ = ctx
-	var out *RefreshToken
-	err := boltView(r.db, func(tx *bbolt.Tx) error {
-		b := tx.Bucket(sessionsBucket)
-		if b == nil {
-			return ErrNotFound
-		}
-		v := b.Get([]byte(id))
-		if v == nil {
-			return ErrNotFound
-		}
-		t := new(RefreshToken)
-		if err := boltUnmarshal(v, t); err != nil {
-			return err
-		}
-		out = t
-		return nil
-	})
-	return out, err
-}
-
 // ── boltUserStore ─────────────────────────────────────────────────────────────
 
 var (
@@ -373,6 +351,28 @@ var (
 	sessionsHashIdx = []byte("identity_sessions_by_hash")
 	sessionsUserIdx = []byte("identity_sessions_by_user")
 )
+
+func (r *boltSessionStore) GetByID(ctx context.Context, id string) (*RefreshToken, error) {
+	_ = ctx
+	var out *RefreshToken
+	err := boltView(r.db, func(tx *bbolt.Tx) error {
+		b := tx.Bucket(sessionsBucket)
+		if b == nil {
+			return ErrNotFound
+		}
+		v := b.Get([]byte(id))
+		if v == nil {
+			return ErrNotFound
+		}
+		t := new(RefreshToken)
+		if err := boltUnmarshal(v, t); err != nil {
+			return err
+		}
+		out = t
+		return nil
+	})
+	return out, err
+}
 
 func (r *boltSessionStore) Save(ctx context.Context, token *RefreshToken) error {
 	_ = ctx
@@ -1027,7 +1027,7 @@ type boltPluginStore struct {
 	dataDir string
 }
 
-var pluginsBucket = []byte("plugins") //nolint:unused //nolint:unused
+var pluginsBucket = []byte("plugins") //nolint:unused // reserved for future plugin bucket bootstrap
 
 func newBoltPluginStore(db *boltDB, slug, dataDir string) *boltPluginStore {
 	return &boltPluginStore{db: db, slug: slug, dataDir: dataDir}
@@ -1065,12 +1065,12 @@ func (s *boltPluginStore) Migrate(migrations []PluginMigration) error {
 			if m.Migrate == nil {
 				continue
 			}
+			if m.Version < 0 {
+				return fmt.Errorf("invalid migration version: %d", m.Version)
+			}
 			tx_ := &boltPluginMigrationTx{root: root}
 			if err := m.Migrate(tx_); err != nil {
 				return fmt.Errorf("plugin migration %d: %w", m.Version, err)
-			}
-			if m.Version < 0 {
-				return fmt.Errorf("invalid migration version: %d", m.Version)
 			}
 			if err := schemaBucket.Put(versionKey, []byte(strconv.Itoa(m.Version))); err != nil {
 				return err

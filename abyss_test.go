@@ -27,7 +27,8 @@ func TestLoadConfig_Defaults(t *testing.T) {
 	assert.Equal(t, "data", cfg.Data.Dir)
 	assert.Equal(t, 24*time.Hour, cfg.Auth.AccessTokenTTL)
 	assert.Equal(t, 30*24*time.Hour, cfg.Auth.RefreshTokenTTL)
-	assert.True(t, cfg.Auth.AllowQueryToken)
+	// Defaults to off: query-token auth leaks JWTs into logs/history.
+	assert.False(t, cfg.Auth.AllowQueryToken)
 }
 
 func TestLoadConfig_FromFile(t *testing.T) {
@@ -52,12 +53,12 @@ func TestLoadConfig_DisableQueryToken(t *testing.T) {
 	cfgPath := filepath.Join(dir, "config.toml")
 	content := `
 [auth]
-allowQueryToken = false
+allowQueryToken = true
 `
 	require.NoError(t, os.WriteFile(cfgPath, []byte(content), 0o600))
 	cfg, err := LoadConfig([]string{"-config", cfgPath})
 	require.NoError(t, err)
-	assert.False(t, cfg.Auth.AllowQueryToken)
+	assert.True(t, cfg.Auth.AllowQueryToken)
 }
 
 func TestLoadConfig_InvalidTOML(t *testing.T) {

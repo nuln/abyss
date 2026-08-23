@@ -1,5 +1,9 @@
 # Abyss 项目代码审计报告
 
+> **复审状态（2026-08）**：BUG-1~7 与 OPT-2/3/4/8 均已在 monorepo 中修复落地；
+> 独立复审另发现任务上下文取消（Critical）、MFA token 类型隔离缺失、覆盖写元数据漂移、
+> 目录重命名不级联等问题，已一并修复，详见对应提交记录。
+>
 > 审计范围：后端核心代码（`app.go`(原 abyss.go), `identity.go`(原 auth.go+user.go+util.go 加密部分), `api.go`(原 http.go), `boltdb.go`(原 db.go), `storage.go`, `plugin.go`, `task.go`, `config.go`(含 settings.go), `errors.go`）
 > 
 > 注：本报告为审计时的快照，文中残留的旧文件名与行号以括号内映射为准。

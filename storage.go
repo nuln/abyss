@@ -8,6 +8,7 @@ import (
 	"image"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -645,16 +646,30 @@ func enforceStorageCacheLimit[V any](m map[uint64]V) {
 	if len(m) < maxStorageCacheEntries {
 		return
 	}
+	// Evict the numerically oldest key as a cheap stand-in for LRU: user
+	// ids are roughly allocation-ordered, so this approximates evicting
+	// the least-recently-created entry without extra bookkeeping.
+	var oldest uint64
+	first := true
 	for key := range m {
-		delete(m, key)
-		break
+		if first || key < oldest {
+			oldest = key
+			first = false
+		}
 	}
+	delete(m, oldest)
 }
 
 func (s *storageService) WriteFile(ctx context.Context, userID uint64, filePath string, r io.Reader) (*File, error) {
 	engine, err := s.GetEngine(userID)
 	if err != nil {
 		return nil, err
+	}
+	// Resolve the existing record (if any) BEFORE writing so an overwrite
+	// updates metadata in place instead of colliding after the disk write.
+	existing, lookupErr := s.store.GetByUserPath(ctx, userID, filePath)
+	if lookupErr != nil && !errors.Is(lookupErr, ErrNotFound) {
+		return nil, lookupErr
 	}
 	stream := newSniffingCounterReader(r)
 	if err := engine.Write(ctx, filePath, stream); err != nil {
@@ -671,6 +686,13 @@ func (s *storageService) WriteFile(ctx context.Context, userID uint64, filePath 
 			MIME: detectMIME(filePath, sniffData),
 		},
 	}
+	if existing != nil {
+		// Overwrite: keep identity and creation time, refresh content fields.
+		meta.ID = existing.ID
+		meta.CreatedAt = existing.CreatedAt
+		meta.Checksum = existing.Checksum
+	}
+	meta.ModifiedAt = time.Now().UTC()
 	if err := s.store.Save(ctx, meta); err != nil {
 		return nil, err
 	}
@@ -816,6 +838,12 @@ func (s *storageService) RenameFile(ctx context.Context, userID, id uint64, newP
 		return nil, err
 	}
 	np := normalizePath(newPath)
+	// Reject moves onto an existing target path before touching the disk.
+	if other, lookupErr := s.store.GetByUserPath(ctx, userID, np); lookupErr == nil && other.ID != f.ID {
+		return nil, ErrConflict
+	}
+	isDir := f.Type == EntryDir
+	oldPath := f.Path
 	if err := engine.Move(ctx, f.Path, np); err != nil {
 		return nil, err
 	}
@@ -823,6 +851,27 @@ func (s *storageService) RenameFile(ctx context.Context, userID, id uint64, newP
 	f.Name = path.Base(f.Path)
 	if err := s.store.Save(ctx, f); err != nil {
 		return nil, err
+	}
+	// Cascade the rename to every descendant record so metadata stays in
+	// sync with the physical tree after moving a directory.
+	if isDir && oldPath != "/" {
+		prefix := strings.TrimSuffix(oldPath, "/") + "/"
+		newPrefix := strings.TrimSuffix(np, "/") + "/"
+		all, listErr := s.store.ListByUser(ctx, userID)
+		if listErr == nil {
+			for _, child := range all {
+				if child.ID == f.ID || !strings.HasPrefix(child.Path, prefix) {
+					continue
+				}
+				child.Path = newPrefix + strings.TrimPrefix(child.Path, prefix)
+				child.Name = path.Base(child.Path)
+				if err := s.store.Save(ctx, child); err != nil {
+					slog.Error("cascade rename", "path", child.Path, "error", err)
+				}
+			}
+		} else {
+			slog.Error("list for cascade rename", "error", listErr)
+		}
 	}
 	return f, nil
 }

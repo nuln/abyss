@@ -1,6 +1,6 @@
 // Package abyss is the library entry point for abyss.
 //
-// External projects (e.g. the root abyss binary) call [Main] to start the server:
+// External projects (e.g. the root abyss binary) call [Run] to start the server:
 //
 //	package main
 //
@@ -126,15 +126,12 @@ func Bootstrap(args []string) (*App, error) {
 	// Persist plugin status changes back to settings.
 	StatusManager.SetPersistenceHook(func(name string, enabled bool) error {
 		ctx := context.Background()
-		s, err := deps.settingsSvc.Get(ctx)
-		if err != nil {
-			return err
-		}
-		if s.PluginStatuses == nil {
-			s.PluginStatuses = make(map[string]bool)
-		}
-		s.PluginStatuses[name] = enabled
-		return deps.settingsSvc.Save(ctx, s)
+		return deps.settingsSvc.Update(ctx, func(s *Settings) {
+			if s.PluginStatuses == nil {
+				s.PluginStatuses = make(map[string]bool)
+			}
+			s.PluginStatuses[name] = enabled
+		})
 	})
 
 	// Create demo user if enabled.
@@ -542,7 +539,7 @@ func (u pluginUsers) IssueToken(w http.ResponseWriter, r *http.Request, user *Us
 	if u.authSvc == nil {
 		return http.StatusInternalServerError, ErrInternal
 	}
-	result, err := u.authSvc.issueAuthResult(r.Context(), user, r.UserAgent())
+	result, err := u.authSvc.issueAuthResultWithTTL(r.Context(), user, r.UserAgent(), ttl)
 	if err != nil {
 		return http.StatusInternalServerError, err
 	}
@@ -559,6 +556,7 @@ func (u pluginUsers) IssueMFAToken(userID uint64, method string, ttl time.Durati
 		"met": method, // Bound method
 		"iat": now.Unix(),
 		"exp": now.Add(ttl).Unix(),
+		"typ": "mfa",
 	}
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return t.SignedString(u.authSvc.jwtSecret)
@@ -566,6 +564,9 @@ func (u pluginUsers) IssueMFAToken(userID uint64, method string, ttl time.Durati
 
 func (u pluginUsers) VerifyMFAToken(tokenStr string) (userID uint64, method string, err error) {
 	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
 		return u.authSvc.jwtSecret, nil
 	})
 	if err != nil || !token.Valid {
@@ -576,6 +577,9 @@ func (u pluginUsers) VerifyMFAToken(tokenStr string) (userID uint64, method stri
 		return 0, "", fmt.Errorf("invalid claims")
 	}
 	if mfa, _ := claims["mfa"].(bool); !mfa {
+		return 0, "", fmt.Errorf("not an mfa token")
+	}
+	if typ, _ := claims["typ"].(string); typ != "mfa" {
 		return 0, "", fmt.Errorf("not an mfa token")
 	}
 	uid, _ := claims["uid"].(float64)
@@ -739,7 +743,9 @@ func parseConfigFlags(args []string) (configFlagValues, map[string]bool, error) 
 }
 
 func loadConfigFile(configPath string) (Config, legacyCompatConfig, bool, error) {
-	cfg := Config{Auth: AuthConfig{AllowQueryToken: true}}
+	// AllowQueryToken defaults to off: JWTs in URLs leak into proxy and
+	// access logs. Enable explicitly in config.toml for debugging only.
+	cfg := Config{Auth: AuthConfig{AllowQueryToken: false}}
 	legacyCfg := legacyCompatConfig{}
 	cleanPath := filepath.Clean(configPath)
 	data, err := os.ReadFile(cleanPath)
@@ -1063,7 +1069,36 @@ func (s *settingsService) Get(ctx context.Context) (*Settings, error) {
 	return cloneSettings(normalized), nil
 }
 
+// saveMu serialises read-modify-write cycles (plugin status hooks vs.
+// admin saves) so concurrent writers cannot silently overwrite each other
+// with a stale full-settings snapshot.
+var settingsSaveMu sync.Mutex
+
+// Update atomically reads the latest settings, applies mutate, and persists
+// the result under the same lock as Save.
+func (s *settingsService) Update(ctx context.Context, mutate func(*Settings)) error {
+	settingsSaveMu.Lock()
+	defer settingsSaveMu.Unlock()
+	cur, err := s.store.Get(ctx)
+	if err != nil {
+		return err
+	}
+	if cur == nil {
+		cur = &Settings{}
+	}
+	mutate(cur)
+	if err := s.store.Save(ctx, cur); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.cache = cloneSettings(cur)
+	s.mu.Unlock()
+	return nil
+}
+
 func (s *settingsService) Save(ctx context.Context, in *Settings) error {
+	settingsSaveMu.Lock()
+	defer settingsSaveMu.Unlock()
 	if err := s.store.Save(ctx, in); err != nil {
 		return err
 	}

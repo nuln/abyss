@@ -78,15 +78,17 @@ func (m *statusManager) Enable(name string, enabled bool) error {
 			return err
 		}
 	}
-	m.mu.Lock()
-	m.status[name] = enabled
+	// Persist first, then flip the in-memory flag: if persistence fails the
+	// runtime state stays consistent with what will be loaded after restart.
 	hook := m.persistenceHook
-	m.mu.Unlock()
 	if hook != nil {
 		if err := hook(name, enabled); err != nil {
 			return err
 		}
 	}
+	m.mu.Lock()
+	m.status[name] = enabled
+	m.mu.Unlock()
 	return nil
 }
 
