@@ -12,7 +12,6 @@
     "src/components/prompts/Share.vue"
   ],
   "compilerOptions": {
-    "baseUrl": ".",
     "moduleResolution": "bundler",
     "types": [
       "node",
