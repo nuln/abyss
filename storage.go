@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -15,6 +17,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/disintegration/imaging"
 )
 
 // EntryType distinguishes files from directories.
@@ -1136,4 +1140,63 @@ func HashPath(hash string) string {
 		return hash
 	}
 	return filepath.Join(hash[0:1], hash[1:2], hash[2:3], hash)
+}
+
+// ── MIME ─────────────────────────────────────────────────────────────────────
+
+func detectMIME(filename string, data []byte) string {
+	if len(data) > 0 {
+		return http.DetectContentType(data)
+	}
+	ext := strings.ToLower(filepath.Ext(filename))
+	if ext == "" {
+		return "application/octet-stream"
+	}
+	if t := mimeByExt(ext); t != "" {
+		return t
+	}
+	return "application/octet-stream"
+}
+
+func mimeByExt(ext string) string {
+	switch ext {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	case ".txt":
+		return "text/plain; charset=utf-8"
+	case ".json":
+		return "application/json"
+	case ".pdf":
+		return "application/pdf"
+	default:
+		return ""
+	}
+}
+
+// ── Image ────────────────────────────────────────────────────────────────────
+
+func decodeImage(r io.Reader) (image.Image, error) {
+	img, err := imaging.Decode(r)
+	if err != nil {
+		return nil, fmt.Errorf("decode image: %w", err)
+	}
+	return img, nil
+}
+
+func resizeToFit(in io.Reader, width, height int, out io.Writer) error {
+	img, err := decodeImage(in)
+	if err != nil {
+		return err
+	}
+	resized := imaging.Fit(img, width, height, imaging.Lanczos)
+	if err := imaging.Encode(out, resized, imaging.JPEG); err != nil {
+		return fmt.Errorf("encode image: %w", err)
+	}
+	return nil
 }

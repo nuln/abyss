@@ -58,17 +58,16 @@ Abyss 采用「轻核心 + 可插拔扩展」架构：
 
 ```text
 abyss/
-├── abyss.go                # 应用 Bootstrap / 依赖装配 / 服务器生命周期
-├── config.go               # 配置加载、默认值、flag 覆盖、JWT secret 自动生成
-├── db.go                   # BoltDB 封装 + 所有核心存储实现 + PluginStore
-├── auth.go                 # JWT 签发/校验、refresh session、auth middleware
-├── http.go                 # 核心 REST 路由注册与 handler（身份/文件/任务/设置）
-├── storage.go              # StorageEngine 抽象 + path 引擎 + metadata 修复
+├── app.go                  # 应用 Bootstrap / 依赖装配 / 服务器生命周期
+├── config.go               # 配置加载、默认值、flag 覆盖、JWT secret 自动生成 + 全局设置模型与服务
+├── boltdb.go               # BoltDB 封装 + 所有核心存储实现 + PluginStore
+├── identity.go             # 用户模型/权限模型/用户服务 + JWT 签发校验、refresh session + crypto 工具
+├── api.go                  # 核心 REST 路由注册与 handler（身份/文件/任务/设置）
+├── storage.go              # StorageEngine 抽象 + path 引擎 + metadata 修复 + MIME 探测/图片处理
 ├── plugin.go               # 插件接口宇宙、注册栈、状态管理、插件路由桥接
-├── settings.go             # 全局设置模型与服务
-├── user.go                 # 用户模型/权限模型/用户服务
 ├── task.go                 # 异步任务引擎、订阅广播（SSE 上游）
 ├── errors.go               # 统一错误码与错误包装
+├── docs/                   # 项目文档
 ├── plugins/                # 社区/基础插件（totp/trash/webdav）
 ├── pro/                    # Pro 插件（album/passkey/sync/...）
 ├── example/                # 组合打包入口（基础版/Pro 版）
@@ -93,7 +92,7 @@ abyss/
 
 ## 3.1 BoltDB 总体
 
-核心 DB 初始化在 `openAndInitDB`（`abyss.go`），调用 `boltEnsureSchema` 建立顶层桶。
+核心 DB 初始化在 `openAndInitDB`（`app.go`），调用 `boltEnsureSchema` 建立顶层桶。
 
 ### 3.1.1 顶层 Buckets 列表
 
@@ -529,10 +528,10 @@ func init() {
 
 - `plugin.go`：插件接口、注册器、路由桥、状态管理
 - `storage.go`：`StorageEngine` 接口与路径语义
-- `db.go`：bucket 名称、索引 key 编码规则、序列化结构
-- `auth.go`：JWT claims 字段（`uid/role/admin/user/...`）
-- `http.go`：API 路径与统一响应契约
-- `user.go`, `settings.go`, `task.go`：前后端共享数据模型
+- `boltdb.go`：bucket 名称、索引 key 编码规则、序列化结构
+- `identity.go`：JWT claims 字段（`uid/role/admin/user/...`）
+- `api.go`：API 路径与统一响应契约
+- `config.go`（Settings）、`identity.go`（User）、`task.go`（Task）：前后端共享数据模型
 
 兼容性铁律：
 
@@ -674,8 +673,8 @@ func (m *Manager) Init(ctx *StartupContext) error {
 ## 附录 B：AI 任务建议工作流
 
 1. 先确认需求属于 Core、Plugin 还是 Frontend。
-2. 涉及持久化先看 `db.go` 的桶与索引。
-3. 涉及认证先看 `auth.go` 和 `http.go` 路由保护。
+2. 涉及持久化先看 `boltdb.go` 的桶与索引。
+3. 涉及认证先看 `identity.go` 和 `api.go` 路由保护。
 4. 涉及插件先看 `plugin.go` 接口 + 参考 `plugins/webdav`。
 5. 改动后至少执行：
    - `go test ./...`

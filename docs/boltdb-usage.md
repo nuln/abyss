@@ -1,10 +1,10 @@
 # BoltDB Usage
 
 ## Description
-Instructions on interacting with the BoltDB database through the `db.go` and `storage.go` abstractions in Abyss.
+Instructions on interacting with the BoltDB database through the `boltdb.go` and `storage.go` abstractions in Abyss.
 
 ## Context
-- `db.go`: BoltDB implementation and store wrappers.
+- `boltdb.go`: BoltDB implementation and store wrappers.
 - `storage.go`: Higher-level file and storage metadata management.
 
 ## Instructions

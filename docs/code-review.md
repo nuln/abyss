@@ -1,8 +1,10 @@
 # Abyss 项目代码审计报告
 
-> 审计范围：后端核心代码（`abyss.go`, `auth.go`, `http.go`, `db.go`, `storage.go`, `plugin.go`, `task.go`, `user.go`, `settings.go`, `util.go`, `errors.go`, `config.go`）
+> 审计范围：后端核心代码（`app.go`(原 abyss.go), `identity.go`(原 auth.go+user.go+util.go 加密部分), `api.go`(原 http.go), `boltdb.go`(原 db.go), `storage.go`, `plugin.go`, `task.go`, `config.go`(含 settings.go), `errors.go`）
 > 
-> 审计基准文档：[PROJECT_CONTEXT.md](./project-context.md)
+> 注：本报告为审计时的快照，文中残留的旧文件名与行号以括号内映射为准。
+> 
+> 审计基准文档：[project-context.md](./project-context.md)
 
 ---
 
@@ -10,7 +12,7 @@
 
 ### 🔴 BUG-1：`handleRevokeSession` 缺少用户归属校验（IDOR 越权漏洞）
 
-**严重程度：Critical** | **文件：** [http.go](../http.go#L443-L455)
+**严重程度：Critical** | **文件：** [http.go](../api.go#L443-L455)
 
 ```go
 func (a *App) handleRevokeSession(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +30,7 @@ func (a *App) handleRevokeSession(w http.ResponseWriter, r *http.Request) {
 
 ### 🔴 BUG-2：`handleUpdateUser` 非管理员可篡改任意用户的角色和权限
 
-**严重程度：Critical** | **文件：** [http.go](../http.go#L540-L613)
+**严重程度：Critical** | **文件：** [http.go](../api.go#L540-L613)
 
 ```go
 func (a *App) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +54,7 @@ func (a *App) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 
 ### 🟠 BUG-3：`WriteErr` 中 `appErr` 为 nil 时可能 panic
 
-**严重程度：High** | **文件：** [http.go](../http.go#L85-L115)
+**严重程度：High** | **文件：** [http.go](../api.go#L85-L115)
 
 ```go
 func WriteErr(w http.ResponseWriter, err error) {
@@ -79,7 +81,7 @@ func WriteErr(w http.ResponseWriter, err error) {
 
 ### 🟠 BUG-4：`Shutdown` 提前返回导致数据库未关闭
 
-**严重程度：High** | **文件：** [abyss.go](../abyss.go#L445-L465)
+**严重程度：High** | **文件：** [abyss.go](../app.go#L445-L465)
 
 ```go
 func (a *App) Shutdown(ctx context.Context) error {
@@ -107,7 +109,7 @@ func (a *App) Shutdown(ctx context.Context) error {
 
 ### 🟡 BUG-5：`handleFileUpload` 未限制请求体大小
 
-**严重程度：Medium** | **文件：** [http.go](../http.go#L634-L667)
+**严重程度：Medium** | **文件：** [http.go](../api.go#L634-L667)
 
 ```go
 file, err = a.storageSvc.WriteFile(r.Context(), uid, filePath, r.Body)
@@ -121,7 +123,7 @@ file, err = a.storageSvc.WriteFile(r.Context(), uid, filePath, r.Body)
 
 ### 🟡 BUG-6：`DecodeJSON` 未限制请求体大小
 
-**严重程度：Medium** | **文件：** [http.go](../http.go#L118-L120)
+**严重程度：Medium** | **文件：** [http.go](../api.go#L118-L120)
 
 ```go
 func DecodeJSON(r *http.Request, out any) error {
@@ -137,7 +139,7 @@ func DecodeJSON(r *http.Request, out any) error {
 
 ### 🟡 BUG-7：`ensureDemoUser` 函数在 `Bootstrap` 中未被使用
 
-**严重程度：Medium（死代码）** | **文件：** [abyss.go](../abyss.go#L389-L425)
+**严重程度：Medium（死代码）** | **文件：** [abyss.go](../app.go#L389-L425)
 
 `ensureDemoUser` 是一个完整的独立函数，但 `Bootstrap` 中使用的是一段内联的 demo 用户创建逻辑（L134-L168）。两段逻辑存在行为不一致：
 
@@ -152,7 +154,7 @@ func DecodeJSON(r *http.Request, out any) error {
 
 ### ⚡ OPT-1：`signJWT` 中嵌入完整 User 对象导致 Token 膨胀
 
-**文件：** [auth.go](../auth.go#L211-L225)
+**文件：** [auth.go](../identity.go#L211-L225)
 
 ```go
 claims := jwt.MapClaims{
@@ -170,7 +172,7 @@ claims := jwt.MapClaims{
 
 ### ⚡ OPT-2：`settingsService.Get` 每次请求都查 DB
 
-**文件：** [settings.go](../settings.go#L67-L120)
+**文件：** [settings.go](../config.go#L67-L120)
 
 `handleIndex`、`handleRegister`、`handleUpdateUser` 等热路径每次都调用 `settingsSvc.Get()` 去 BoltDB 读取，而 Settings 几乎不变。
 
@@ -190,7 +192,7 @@ claims := jwt.MapClaims{
 
 ### ⚡ OPT-4：`boltUserStore.Update` 中索引未做唯一性冲突检查
 
-**文件：** [db.go](../db.go#L242-L289)
+**文件：** [db.go](../boltdb.go#L242-L289)
 
 修改 email/username 时，代码先删除旧索引再写入新索引，但**没有检查新 email/username 是否已被其他用户占用**。这可能导致两个用户拥有相同的 email 或 username，破坏索引唯一性约束。
 
@@ -217,7 +219,7 @@ _ = s.store.Save(runCtx, t)  // ❌ runCtx 已被 cancel，Save 内部检查 ctx
 
 ### ⚡ OPT-6：`handleIndex` 每次请求都解析 HTML 模板
 
-**文件：** [http.go](../http.go#L1041-L1111)
+**文件：** [http.go](../api.go#L1041-L1111)
 
 每个 SPA 页面请求（非 API、非静态资源）都会：
 1. `fs.ReadFile` 读取 `index.html`
@@ -230,7 +232,7 @@ _ = s.store.Save(runCtx, t)  // ❌ runCtx 已被 cancel，Save 内部检查 ctx
 
 ### ⚡ OPT-7：`aesEncrypt/aesDecrypt` 使用 JWT Secret 作为 AES 密钥
 
-**文件：** [util.go](../util.go#L107-L134)
+**文件：** [util.go](../identity.go#L107-L134)
 
 JWT Secret（32 bytes）直接作为 AES-256 密钥使用。如果 JWT Secret 泄露，所有加密数据（如插件中的敏感配置）都会被解密。更好的做法是使用 KDF 派生独立的加密密钥。
 
@@ -240,9 +242,9 @@ JWT Secret（32 bytes）直接作为 AES-256 密钥使用。如果 JWT Secret �
 
 ### ⚡ OPT-8：前后端契约偏差 — `GET /api/setup/status` 未实现
 
-**来源**：[PROJECT_CONTEXT.md](./project-context.md#L627-L631)
+**来源**：[project-context.md](./project-context.md#L627-L631)
 
-`PROJECT_CONTEXT.md` 已经识别到前端存在 `GET /api/setup/status` 调用，但后端未实现。
+`docs/project-context.md` 已经识别到前端存在 `GET /api/setup/status` 调用，但后端未实现。
 
 **建议**：确认前端是否仍在调用此端点。如果是，补充实现；如果是历史残留，清理前端代码。
 
@@ -280,7 +282,7 @@ JWT Secret（32 bytes）直接作为 AES-256 密钥使用。如果 JWT Secret �
 你是一位 Go 安全工程师和代码质量专家。请根据以下审计结果，对 Abyss 项目进行精确修复。
 
 ## 关键约束
-- 请先阅读项目根目录下的 `PROJECT_CONTEXT.md`，了解完整架构。
+- 请先阅读项目根目录下的 `docs/project-context.md`，了解完整架构。
 - **修改后必须保持向前兼容**：不改变 API 响应结构、bucket 名称、索引 key 格式。
 - 每个修复完成后运行 `go test ./...` 确保所有测试通过。
 - 优先修复 Critical 和 High 级别问题。

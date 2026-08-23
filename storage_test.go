@@ -1,6 +1,7 @@
 package abyss
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -662,4 +663,47 @@ func TestVirtualEngine(t *testing.T) {
 	entries, err := e.List(context.Background(), "/")
 	assert.NoError(t, err)
 	assert.Empty(t, entries)
+}
+
+// ── MIME ──────────────────────────────────────────────────────────────────────
+
+func TestDetectMIME_BySniff(t *testing.T) {
+	// PNG magic bytes
+	pngHeader := []byte("\x89PNG\r\n\x1a\n" + strings.Repeat("x", 20))
+	mime := detectMIME("unknown", pngHeader)
+	assert.Contains(t, mime, "png")
+}
+
+func TestDetectMIME_ByExtension(t *testing.T) {
+	cases := map[string]string{
+		"photo.jpg":  "image/jpeg",
+		"photo.jpeg": "image/jpeg",
+		"icon.png":   "image/png",
+		"anim.gif":   "image/gif",
+		"img.webp":   "image/webp",
+		"doc.pdf":    "application/pdf",
+		"data.json":  "application/json",
+		"read.txt":   "text/plain; charset=utf-8",
+	}
+	for name, want := range cases {
+		mime := detectMIME(name, nil)
+		assert.Equal(t, want, mime, "file: %s", name)
+	}
+}
+
+func TestDetectMIME_Unknown(t *testing.T) {
+	mime := detectMIME("file.unknownxyz", nil)
+	assert.Equal(t, "application/octet-stream", mime)
+}
+
+// ── Image ─────────────────────────────────────────────────────────────────────
+
+func TestResizeToFit_InvalidReader(t *testing.T) {
+	err := resizeToFit(bytes.NewReader([]byte("not an image")), 100, 100, new(bytes.Buffer))
+	assert.Error(t, err)
+}
+
+func TestDecodeImage_InvalidData(t *testing.T) {
+	_, err := decodeImage(bytes.NewReader([]byte("garbage")))
+	assert.Error(t, err)
 }

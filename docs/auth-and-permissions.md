@@ -4,9 +4,9 @@
 Context on the JWT-based authentication and the permission model used in the Abyss backend.
 
 ## Context
-- `auth.go`: Core authentication logic and middleware.
-- `user.go`: User roles and definitions.
-- `abyss.go`: Global auth service initialization.
+- `identity.go` (was auth.go): Core authentication logic and middleware.
+- `identity.go` (was user.go): User roles and definitions.
+- `app.go`: Global auth service initialization.
 
 ## Instructions
 1. **JWT Authentication**:
