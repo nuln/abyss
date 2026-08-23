@@ -26,7 +26,9 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        # Reads the version from www/package.json "packageManager"
+        with:
+          # Reads the version from the "packageManager" field
+          package_json_file: www/package.json
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
