@@ -508,7 +508,7 @@ func init() {
 - 非 2xx 抛 `StatusError`
 - 401 可触发统一未授权处理器
 
-常见错误码映射（`errors.go` + `WriteErr`）：
+常见错误码映射（`app.go` + `WriteErr`）：
 
 - `not_found` -> 404
 - `unauthorized` -> 401
@@ -530,7 +530,7 @@ func init() {
 - `boltdb.go`：bucket 名称、索引 key 编码规则、序列化结构
 - `identity.go`：JWT claims 字段（`uid/role/admin/user/...`）
 - `api.go`：API 路径与统一响应契约
-- `config.go`（Settings）、`identity.go`（User）、`task.go`（Task）：前后端共享数据模型
+- `app.go`（Settings）、`identity.go`（User）、`task.go`（Task）：前后端共享数据模型
 
 兼容性铁律：
 
@@ -541,7 +541,7 @@ func init() {
 
 ## 7.2 错误处理规范
 
-- 业务错误优先使用 `*Error`（`errors.go`）。
+- 业务错误优先使用 `*Error`（`app.go`）。
 - 需要保留原始错误时用 `WrapError(base, cause, msg)`。
 - HTTP handler 统一通过 `WriteErr` 或 `WriteJSON` 输出，不直接散落 `http.Error`（SSE/流式等特殊场景除外）。
 - 插件 handler 推荐返回 `abyss.Fail(status, err)`，避免自定义格式漂移。
