@@ -133,7 +133,14 @@ release-build:
 	done
 	@echo "Release artifacts ready in dist/release/"
 
+# NOTE: the shared core-assets action injects the repo token only into the
+# git remote URL (not the environment); recover it from there for gh.
 release-assets: release-build
-	@if [ -z "$(TAG)" ]; then echo "usage: make release-assets TAG=v1.2.3" >&2; exit 2; fi
-	@if [ -n "$$GITHUB_TOKEN" ]; then export GH_TOKEN="$$GITHUB_TOKEN"; fi; \
+	@if [ -z "$(TAG)" ]; then echo "usage: make release-assets TAG=v1.2.3" >&2; exit 2; fi; \
+	if [ -n "$$GITHUB_TOKEN" ]; then \
+		export GH_TOKEN="$$GITHUB_TOKEN"; \
+	else \
+		tok=$$(git config --get remote.origin.url | sed -n 's|^https://x-access-token:\([^@]*\)@.*$$|\1|p'); \
+		if [ -n "$$tok" ]; then export GH_TOKEN="$$tok"; fi; \
+	fi; \
 	gh release create "$(TAG)" --title "$(TAG)" --generate-notes dist/release/*
